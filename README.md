@@ -1,168 +1,340 @@
-# GO VCL 多功能演示程序
+# GO_VCL Windows GUI应用程序
 
-这是一个基于Go VCL框架开发的多功能桌面应用程序，集成了Excel、JSON、HTTP和SQLite数据库操作功能。
+[![Release Version](https://img.shields.io/github/release/yuan71058/GO_VCL.svg)](https://github.com/yuan71058/GO_VCL/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/badge/Go-1.20+-blue.svg)](https://golang.org)
+[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
 
-## 功能特性
+GO_VCL是一个功能丰富的Windows桌面GUI应用程序，基于Go语言和Govcl UI框架开发，集成了Excel处理、JSON操作、HTTP请求和数据库管理等多种功能，提供直观易用的图形界面。
+
+## 🌟 主要功能
 
 ### 📊 Excel操作
-- Excel文件导入/导出
-- 数据表格操作
-- 批量数据处理
+- **文件导入导出**: 支持xlsx格式的Excel文件导入和导出
+- **数据处理**: 提供完整的Excel数据读取、写入和修改功能
+- **批量操作**: 支持批量数据处理和格式转换
 
 ### 🔧 JSON操作
-- JSON数据解析和验证
-- JSON文件读写
-- 数据转换和处理
+- **数据解析**: 完整的JSON数据解析和验证功能
+- **文件操作**: JSON文件的读取、写入和格式化
+- **路径查询**: 支持JSONPath查询和数据提取
 
 ### 🌐 HTTP网络操作
-- HTTP GET/POST/PUT/DELETE请求
-- 文件下载功能
-- 请求头和参数管理
+- **多方法支持**: GET、POST、PUT、DELETE等HTTP方法
+- **文件下载**: 支持文件下载和进度显示
+- **请求管理**: 自定义请求头、参数和超时设置
 
 ### 💾 数据库操作
-- SQLite数据库管理
-- CRUD操作（创建、读取、更新、删除）
-- 演示数据生成
+- **SQLite管理**: 完整的SQLite数据库操作功能
+- **CRUD操作**: 创建、读取、更新、删除数据记录
+- **模拟模式**: 在无SQLite驱动环境下的模拟操作
 
-## 项目结构
+### 🖼️ 图像处理
+- **图片导入**: 支持多种图片格式的导入和显示
+- **图像显示**: 在应用程序界面中显示导入的图片
+- **边框效果**: 为图片框添加美观的边框效果
+
+### 🎛️ UI组件
+- **单选框**: 提供选项配置功能
+- **多选框**: 支持多选项配置
+- **菜单栏**: 包含文件、编辑、工具和帮助菜单
+- **状态栏**: 实时显示操作状态和结果
+
+### ⚡ 高级特性
+- **多线程支持**: 并发任务管理和结果收集
+- **独立部署**: 通过DLL嵌入技术实现无需外部依赖
+- **压缩优化**: 使用UPX技术减小可执行文件大小约67.9%
+
+## 📁 项目结构
 
 ```
-windows-gui-app/
-├── main.go                  # 主程序入口
-├── go.mod                   # Go模块定义
-├── ui/
-│   └── MainForm.go          # 主窗口UI定义
-├── handlers/
-│   └── button_handlers.go   # 按钮事件处理器
-├── managers/
-│   ├── excel_manager.go     # Excel操作管理器
-│   ├── json_manager.go      # JSON操作管理器
-│   ├── http_manager.go      # HTTP操作管理器
-│   └── database_manager.go  # 数据库操作管理器
-├── utils/
-│   └── helpers.go           # 工具函数库
-└── data/                    # 数据目录（运行时创建）
-    ├── demo.db             # 演示数据库文件
-    ├── demo.json           # 演示JSON文件
-    └── demo.xlsx           # 演示Excel文件
+GO_VCL/
+├── main.go                      # 主程序入口
+├── go.mod                       # Go模块定义
+├── go.sum                       # 依赖版本锁定
+├── README.md                    # 项目说明文档
+├── RELEASE_NOTES.md             # 发布说明
+├── 说明文档.md                   # 中文项目文档
+├── BUILD_SCRIPTS_README.md      # 构建脚本说明
+├── app.manifest                 # 应用程序清单
+├── app.rc                       # 资源文件
+├── rgb.ico                      # 应用程序图标
+├── defaultRes_windows_386.syso  # 默认资源文件
+├── liblcl.dll                   # VCL运行时库
+├── dist/                        # 构建输出目录
+│   └── windows-gui-app.exe      # 可执行文件
+├── ui/                          # UI界面模块
+│   └── MainForm.go              # 主窗口UI定义
+├── handlers/                    # 事件处理模块
+│   └── button_handlers.go      # 按钮事件处理器
+├── managers/                    # 功能管理器模块
+│   ├── excel_manager.go         # Excel操作管理器
+│   ├── json_manager.go          # JSON操作管理器
+│   ├── http_manager.go          # HTTP操作管理器
+│   ├── database_manager.go      # 数据库操作管理器
+│   └── concurrent_manager.go    # 并发任务管理器
+├── interfaces/                  # 接口定义模块
+│   └── ui.go                    # UI接口定义
+├── utils/                       # 工具函数模块
+│   └── helpers.go               # 通用工具函数
+├── docs/                        # 文档目录
+│   ├── USER_MANUAL.md           # 用户手册
+│   ├── ICON_AND_MANIFEST_GUIDE.md # 图标和清单指南
+│   ├── IMPORT_EXCEL_FEATURE.md  # Excel导入功能说明
+│   └── UPX_COMPRESSION_FEATURE.md # UPX压缩功能说明
+└── scripts/                     # 构建脚本目录
+    ├── build.ps1                # PowerShell构建脚本
+    ├── build_and_run.bat        # 批处理构建运行脚本
+    ├── build_and_compress.bat   # 构建压缩脚本
+    └── ...                      # 其他构建脚本
 ```
 
-## 编译和运行
+## 🚀 快速开始
 
-### 环境要求
-- Go 1.20+
-- Windows操作系统
-- VCL框架运行时库
+### 系统要求
+- **操作系统**: Windows 10/11 (x64)
+- **运行环境**: 无需额外依赖（已嵌入所有必需组件）
+- **内存**: 最少512MB可用内存
+- **磁盘**: 至少20MB可用空间
 
-### 编译步骤
+### 下载安装
 
-1. 安装依赖：
+1. **访问发布页面**:
+   - 打开浏览器访问: https://github.com/yuan71058/GO_VCL/releases
+   - 下载最新版本的`windows-gui-app.exe`文件
+
+2. **运行程序**:
+   - 将下载的文件放置到任意目录
+   - 双击`windows-gui-app.exe`启动程序
+   - 无需安装，即下即用
+
+### 从源码构建
+
+如果您想从源码构建程序，请按照以下步骤操作：
+
+1. **环境准备**:
+   ```bash
+   # 安装Go 1.20或更高版本
+   # 确保已配置好GOPATH和PATH环境变量
+   ```
+
+2. **获取源码**:
+   ```bash
+   git clone https://github.com/yuan71058/GO_VCL.git
+   cd GO_VCL
+   ```
+
+3. **安装依赖**:
    ```bash
    go mod tidy
    ```
 
-2. 编译程序：
+4. **构建程序**:
    ```bash
-   go build -o windows-gui-app.exe main.go
+   # 使用提供的构建脚本
+   .\build_and_run.bat
+   
+   # 或手动构建
+   go build -tags tempdll -ldflags "-w -s -H=windowsgui" -o dist/windows-gui-app.exe
    ```
 
-3. 运行程序：
-   ```bash
-   ./windows-gui-app.exe
-   ```
+## 📖 使用指南
 
-## 使用说明
+### 主界面介绍
 
-### 启动程序
-运行程序后，会显示主窗口界面，包含以下功能模块的入口按钮：
-- Excel操作
-- JSON操作  
-- HTTP操作
-- 数据库操作
+程序启动后，您将看到包含以下组件的主界面：
 
-### 快速开始
-1. 点击"创建演示数据"按钮生成示例数据
-2. 使用各个功能模块进行数据操作
-3. 查看操作结果和状态信息
+- **顶部菜单栏**: 文件、编辑、工具、帮助菜单
+- **左侧按钮区**: 各功能模块的操作按钮
+- **中央表格区**: 数据显示和编辑区域
+- **右侧图片区**: 图片导入和显示区域
+- **底部配置区**: 单选框、多选框等配置选项
+- **底部状态栏**: 操作状态和结果信息
 
-### 功能操作
+### 功能操作说明
 
 #### Excel操作
-1. 点击"Excel操作"按钮
-2. 导入Excel文件或导出当前数据
-3. 在表格中查看处理结果
+1. 点击"📊 Excel"按钮进行Excel文件操作
+2. 使用"📥 导入Excel"按钮选择并导入xlsx文件
+3. 数据将自动显示在中央表格区域
+4. 支持数据的编辑和导出功能
 
-#### JSON操作  
-1. 在输入框中输入JSON数据
-2. 点击JSON按钮进行解析和验证
-3. 保存或加载JSON文件
+#### JSON操作
+1. 点击"🔧 JSON"按钮进行JSON数据处理
+2. 在弹出的对话框中输入或粘贴JSON数据
+3. 程序将自动解析并验证JSON格式
+4. 支持JSON数据的格式化和保存
 
-#### HTTP操作
-1. 输入目标URL
-2. 选择HTTP方法
-3. 发送请求并查看响应
+#### HTTP请求
+1. 点击"🌐 HTTP"按钮进行网络请求
+2. 输入目标URL和选择请求方法
+3. 可添加自定义请求头和参数
+4. 查看服务器响应和状态码
 
 #### 数据库操作
-1. 创建或连接SQLite数据库
-2. 执行SQL操作（插入、查询、更新、删除）
-3. 在表格中查看查询结果
+1. 点击"💾 数据库"按钮进行数据库操作
+2. 程序将自动创建或连接SQLite数据库
+3. 执行各种CRUD操作（创建、读取、更新、删除）
+4. 查询结果将显示在表格区域
 
-## 技术特性
+#### 图片导入
+1. 点击"🖼️ 导入图片"按钮选择图片文件
+2. 支持常见图片格式（JPG、PNG、BMP等）
+3. 图片将显示在右侧图片框中
+4. 图片框带有美观的边框效果
+
+#### 获取选中状态
+1. 点击"📋 获取选中状态"按钮
+2. 程序将收集所有单选框和多选框的状态
+3. 结果将显示在底部状态栏中
+
+#### 清空编辑框
+1. 通过菜单栏"编辑" → "清空编辑框"
+2. 或使用快捷键（如果已定义）
+3. 所有编辑框内容将被清空
+
+## 🛠️ 技术架构
 
 ### 架构设计
-- **分层架构**：UI层、业务逻辑层、数据访问层分离
-- **模块化设计**：各功能模块独立开发和维护
-- **事件驱动**：基于事件处理机制的用户交互
+- **分层架构**: UI层、业务逻辑层、数据访问层清晰分离
+- **模块化设计**: 各功能模块独立开发和维护，降低耦合度
+- **事件驱动**: 基于事件处理机制的用户交互模式
+- **管理器模式**: 使用专门的管理器类处理各功能模块
+
+### 核心技术
+- **Go语言**: 高性能、类型安全的编程语言
+- **Govcl框架**: 跨平台的VCL GUI框架
+- **SQLite**: 轻量级嵌入式数据库
+- **Excelize**: 高性能Excel文件处理库
+- **GJSON**: 高效JSON解析库
+- **HttpRequest**: 简洁易用的HTTP客户端库
 
 ### 代码质量
-- 完整的函数注释和文档
-- 错误处理和异常捕获
-- 类型安全和内存管理
-- 遵循Go语言最佳实践
+- **详细注释**: 所有函数和结构体都有详细的中文注释
+- **错误处理**: 完善的错误处理和异常捕获机制
+- **类型安全**: 充分利用Go语言的类型系统
+- **内存管理**: 自动的内存管理和垃圾回收
+- **编码规范**: 遵循Go语言官方编码规范
 
-### 用户体验
-- 直观的图形界面
-- 实时状态反馈
-- 错误提示和帮助信息
-- 支持多种数据格式
+## 🔧 高级配置
 
-## 故障排除
+### 构建选项
+
+项目提供了多种构建脚本，满足不同需求：
+
+1. **build_and_run.bat**: 编译并立即运行程序
+2. **build_and_compress.bat**: 编译并使用UPX压缩程序
+3. **build.ps1**: PowerShell版本的构建脚本
+4. **build_and_run.ps1**: PowerShell版本的构建运行脚本
+
+### 自定义配置
+
+您可以通过修改以下文件来自定义程序行为：
+
+- **app.manifest**: 应用程序清单，包含UAC和兼容性设置
+- **app.rc**: 资源文件，可自定义图标和版本信息
+- **rgb.ico**: 应用程序图标，可替换为自定义图标
+
+### 压缩优化
+
+程序使用UPX压缩技术减小可执行文件大小：
+
+- **原始大小**: 约15.5MB
+- **压缩后大小**: 约5.1MB
+- **压缩率**: 67.9%
+
+压缩后的程序功能完全相同，但文件大小显著减小，便于分发和下载。
+
+## 🐛 故障排除
 
 ### 常见问题
 
 1. **程序无法启动**
-   - 检查是否安装了VCL运行时库
-   - 确认Go环境配置正确
+   - 检查Windows版本是否为Windows 10/11
+   - 确认下载的文件完整，没有损坏
+   - 尝试以管理员身份运行
 
-2. **依赖库问题**
-   - 运行 `go mod tidy` 更新依赖
-   - 检查网络连接和代理设置
+2. **功能操作失败**
+   - 检查文件路径是否包含特殊字符
+   - 确认目标文件没有被其他程序占用
+   - 查看状态栏的错误信息提示
 
-3. **数据库操作失败**
-   - 确认SQLite驱动已正确安装
-   - 检查数据目录权限
+3. **Excel操作问题**
+   - 确认Excel文件格式为xlsx
+   - 检查文件是否被其他程序打开
+   - 尝试使用较小的Excel文件测试
 
-### 调试模式
-程序内置了详细的日志输出，可以在控制台中查看操作过程和错误信息。
+4. **HTTP请求失败**
+   - 检查网络连接是否正常
+   - 确认URL地址是否正确
+   - 某些网站可能不允许程序化访问
 
-## 版本信息
+### 日志和调试
 
-- **版本**：1.0.0
-- **构建时间**：2024年
-- **支持平台**：Windows x64
-- **开发语言**：Go 1.20+
-- **框架版本**：GoVCL v1.4.9+
+程序内置了详细的日志输出功能：
 
-## 许可证
+1. **状态栏日志**: 操作结果和状态信息实时显示
+2. **错误提示**: 友好的错误信息和解决建议
+3. **操作反馈**: 每个操作都有明确的成功/失败反馈
 
-本项目基于MIT许可证开源，详情请参阅LICENSE文件。
+### 性能优化
 
-## 联系支持
+- **大文件处理**: 对于大型Excel文件，处理可能需要较长时间
+- **内存使用**: 程序会自动管理内存，长时间使用后建议重启
+- **并发限制**: 多线程操作有数量限制，避免同时执行过多任务
+
+## 📋 版本历史
+
+### v1.0.0 (2025-11-12)
+- 初始版本发布
+- 实现所有核心功能模块
+- 完成UI界面设计和交互功能
+- 添加完整的错误处理机制
+- 实现liblcl.dll嵌入和UPX压缩功能
+- 完善代码注释和文档
+
+## 🤝 贡献指南
+
+我们欢迎社区贡献！如果您想为项目做出贡献，请遵循以下步骤：
+
+1. Fork本项目到您的GitHub账户
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建Pull Request
+
+### 代码贡献规范
+
+- 遵循现有的代码风格和命名约定
+- 为新功能添加适当的注释和文档
+- 确保所有测试通过
+- 提交信息应清晰描述更改内容
+
+## 📄 许可证
+
+本项目基于MIT许可证开源，详情请参阅[LICENSE](LICENSE)文件。
+
+## 📞 联系支持
 
 如有问题或建议，请通过以下方式联系：
-- 提交GitHub Issue
-- 发送邮件至技术支持
+
+- **GitHub Issues**: [提交问题](https://github.com/yuan71058/GO_VCL/issues)
+- **项目主页**: [GitHub仓库](https://github.com/yuan71058/GO_VCL)
+- **发布页面**: [GitHub Releases](https://github.com/yuan71058/GO_VCL/releases)
+
+## 🙏 致谢
+
+感谢以下开源项目和贡献者：
+
+- [Govcl](https://github.com/ying32/govcl) - Go语言的VCL绑定
+- [Excelize](https://github.com/qax-os/excelize) - Go语言Excel处理库
+- [GJSON](https://github.com/tidwall/gjson) - Go语言JSON解析库
+- [HttpRequest](https://github.com/kirinlabs/HttpRequest) - Go语言HTTP客户端
+- [Go-SQLite3](https://github.com/mattn/go-sqlite3) - Go语言SQLite驱动
 
 ---
 
-© 2024 GO VCL 多功能演示程序. All rights reserved.
+<div align="center">
+  <p>© 2025 GO_VCL Windows GUI应用程序. 保留所有权利.</p>
+  <p>使用 ❤️ 和 Go 语言构建</p>
+</div>
