@@ -2,8 +2,9 @@
 
 [![Release Version](https://img.shields.io/github/release/yuan71058/GO_VCL.svg)](https://github.com/yuan71058/GO_VCL/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.20+-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.22+-blue.svg)](https://golang.org)
 [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
+[![Version](https://img.shields.io/badge/Version-v1.3.0-red.svg)](https://github.com/yuan71058/GO_VCL/releases)
 
 GO_VCL是一个功能丰富的Windows桌面GUI应用程序，基于Go语言和Govcl UI框架开发，集成了Excel处理、JSON操作、HTTP请求和数据库管理等多种功能，提供直观易用的图形界面。
 
@@ -64,9 +65,7 @@ GO_VCL/
 ├── dist/                        # 构建输出目录
 │   └── windows-gui-app.exe      # 可执行文件
 ├── ui/                          # UI界面模块
-│   └── MainForm.go              # 主窗口UI定义
-├── handlers/                    # 事件处理模块
-│   └── button_handlers.go      # 按钮事件处理器
+│   └── MainForm.go              # 主窗口UI定义和事件处理
 ├── managers/                    # 功能管理器模块
 │   ├── excel_manager.go         # Excel操作管理器
 │   ├── json_manager.go          # JSON操作管理器
@@ -198,7 +197,7 @@ GO_VCL/
 ### 架构设计
 - **分层架构**: UI层、业务逻辑层、数据访问层清晰分离
 - **模块化设计**: 各功能模块独立开发和维护，降低耦合度
-- **事件驱动**: 基于事件处理机制的用户交互模式
+- **事件驱动**: 基于事件处理机制的用户交互模式，直接在MainForm结构体中实现所有事件处理逻辑
 - **管理器模式**: 使用专门的管理器类处理各功能模块
 
 ### 核心技术
@@ -285,13 +284,51 @@ GO_VCL/
 
 ## 📋 版本历史
 
-### v1.0.0 (2025-11-12)
-- 初始版本发布
-- 实现所有核心功能模块
-- 完成UI界面设计和交互功能
-- 添加完整的错误处理机制
-- 实现liblcl.dll嵌入和UPX压缩功能
-- 完善代码注释和文档
+### v1.3.0 (2025-11-12)
+- **代码清理与优化**
+  - 删除未使用的handlers/button_handlers.go文件（675行代码）
+  - 将所有事件处理逻辑整合到MainForm结构体中
+  - 简化项目结构，提高代码内聚性
+  - 更新项目文档，保持文档与代码同步
+- **架构优化**
+  - 采用更直接的事件处理方式
+  - 减少不必要的抽象层
+  - 提高代码可维护性
+
+### v1.2.0 (2025-11-12)
+- **界面优化与美化**
+  - 优化界面布局和控件排列
+  - 添加图标和美化界面元素
+  - 改进用户体验
+- **功能增强**
+  - 完善单选框和多选框功能
+  - 增强菜单功能
+  - 添加图片导入功能
+- **技术改进**
+  - 将liblcl.dll嵌入到可执行文件中
+  - 添加UPX压缩支持
+  - 优化构建脚本
+
+### v1.1.0 (2025-11-11)
+- **多线程支持**
+  - 添加并发任务管理器
+  - 支持HTTP、计算、I/O和混合并发任务
+  - 实现任务进度监控
+- **数据库功能增强**
+  - 完善数据库操作功能
+  - 添加事务支持
+  - 修复索引越界问题
+- **错误处理改进**
+  - 添加全局错误处理机制
+  - 改进异常信息显示
+
+### v1.0.0 (2025-11-10)
+- **初始版本发布**
+  - 实现基本的Excel操作功能
+  - 实现基本的JSON操作功能
+  - 实现基本的HTTP操作功能
+  - 实现基本的数据库操作功能
+  - 创建基本的GUI界面
 
 ## 🤝 贡献指南
 
@@ -313,6 +350,10 @@ GO_VCL/
 ## 📄 许可证
 
 本项目基于MIT许可证开源，详情请参阅[LICENSE](LICENSE)文件。
+
+## 👨‍💻 作者
+
+**yuan71058** - *项目所有者* - [GitHub](https://github.com/yuan71058)
 
 ## 📞 联系支持
 
@@ -337,4 +378,5 @@ GO_VCL/
 <div align="center">
   <p>© 2025 GO_VCL Windows GUI应用程序. 保留所有权利.</p>
   <p>使用 ❤️ 和 Go 语言构建</p>
+  <p><strong>最后更新</strong>: 2025-11-12 (v1.3.0)</p>
 </div>
