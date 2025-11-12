@@ -4,8 +4,10 @@
 package ui
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"windows-gui-app/interfaces"
@@ -44,6 +46,7 @@ type MainForm struct {
 	BtnDatabase      *vcl.TButton // 数据库操作按钮 - 用于测试数据库功能
 	BtnConcurrent    *vcl.TButton // 多线程操作按钮 - 用于测试并发任务执行
 	BtnResizeColumns *vcl.TButton // 调整列宽按钮 - 用于调整表格列宽
+	BtnSaveConfig    *vcl.TButton // 保存配置按钮 - 用于保存当前配置到文件
 	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
 	// 输入组件 - 参数配置相关
@@ -127,6 +130,7 @@ func NewMainForm() *MainForm {
 func (f *MainForm) Show() {
 	f.createUI()
 	f.applyUIStyles()
+	f.loadConfig() // 加载配置文件
 	f.TForm.Show()
 }
 
@@ -145,7 +149,7 @@ func (f *MainForm) createUI() {
 	f.PanelButtons = vcl.NewPanel(f.TForm)
 	f.PanelButtons.SetParent(f.PanelMain)
 	f.PanelButtons.SetAlign(types.AlTop)
-	f.PanelButtons.SetHeight(100) // 增加高度以适应单选框
+	f.PanelButtons.SetHeight(190) // 增加高度以适应4排按钮布局
 	f.PanelButtons.SetBevelOuter(types.BvNone)
 
 	// 创建按钮
@@ -406,18 +410,27 @@ func (f *MainForm) createButtons() {
 	buttonPanel.SetAlign(types.AlClient)
 	buttonPanel.SetBevelOuter(types.BvNone)
 
-	// 设置按钮面板高度以适应7个按钮的布局
-	buttonPanel.SetHeight(95) // 增加高度以适应新的按钮面板高度
+	// 设置按钮面板高度以适应4排按钮的布局
+	buttonPanel.SetHeight(180) // 增加高度以适应4排按钮的布局
 
 	// 创建按钮 - 使用网格布局优化视觉效果
 
-	// 第一行按钮
+	// 第一行按钮 (3个)
+	f.BtnSaveConfig = vcl.NewButton(f.TForm)
+	f.BtnSaveConfig.SetParent(buttonPanel)
+	f.BtnSaveConfig.SetCaption("💾 保存配置")
+	f.BtnSaveConfig.SetWidth(100)
+	f.BtnSaveConfig.SetHeight(30)
+	f.BtnSaveConfig.SetLeft(10)
+	f.BtnSaveConfig.SetTop(5)
+	f.BtnSaveConfig.SetOnClick(f.onSaveConfigClick)
+
 	f.BtnGetSelections = vcl.NewButton(f.TForm)
 	f.BtnGetSelections.SetParent(buttonPanel)
 	f.BtnGetSelections.SetCaption("🔍 获取选中状态")
 	f.BtnGetSelections.SetWidth(100)
 	f.BtnGetSelections.SetHeight(30)
-	f.BtnGetSelections.SetLeft(10)
+	f.BtnGetSelections.SetLeft(115)
 	f.BtnGetSelections.SetTop(5)
 	f.BtnGetSelections.SetOnClick(f.onGetSelectionsClick)
 
@@ -426,17 +439,18 @@ func (f *MainForm) createButtons() {
 	f.BtnImportExcel.SetCaption("📊 导入Excel")
 	f.BtnImportExcel.SetWidth(100)
 	f.BtnImportExcel.SetHeight(30)
-	f.BtnImportExcel.SetLeft(115)
+	f.BtnImportExcel.SetLeft(220)
 	f.BtnImportExcel.SetTop(5)
 	f.BtnImportExcel.SetOnClick(f.onImportExcelClick)
 
+	// 第二行按钮 (3个)
 	f.BtnImportImage = vcl.NewButton(f.TForm)
 	f.BtnImportImage.SetParent(buttonPanel)
 	f.BtnImportImage.SetCaption("🖼️ 导入图片")
 	f.BtnImportImage.SetWidth(100)
 	f.BtnImportImage.SetHeight(30)
-	f.BtnImportImage.SetLeft(220) // 调整位置
-	f.BtnImportImage.SetTop(5)
+	f.BtnImportImage.SetLeft(10)
+	f.BtnImportImage.SetTop(45)
 	f.BtnImportImage.SetOnClick(f.onImportImageClick)
 
 	f.BtnExcel = vcl.NewButton(f.TForm)
@@ -444,8 +458,8 @@ func (f *MainForm) createButtons() {
 	f.BtnExcel.SetCaption("📈 Excel操作")
 	f.BtnExcel.SetWidth(100)
 	f.BtnExcel.SetHeight(30)
-	f.BtnExcel.SetLeft(325) // 调整位置
-	f.BtnExcel.SetTop(5)
+	f.BtnExcel.SetLeft(115)
+	f.BtnExcel.SetTop(45)
 	f.BtnExcel.SetOnClick(f.onExcelClick)
 
 	f.BtnJSON = vcl.NewButton(f.TForm)
@@ -453,17 +467,18 @@ func (f *MainForm) createButtons() {
 	f.BtnJSON.SetCaption("📋 JSON操作")
 	f.BtnJSON.SetWidth(100)
 	f.BtnJSON.SetHeight(30)
-	f.BtnJSON.SetLeft(430) // 调整位置
-	f.BtnJSON.SetTop(5)
+	f.BtnJSON.SetLeft(220)
+	f.BtnJSON.SetTop(45)
 	f.BtnJSON.SetOnClick(f.onJSONClick)
 
+	// 第三行按钮 (3个)
 	f.BtnHTTP = vcl.NewButton(f.TForm)
 	f.BtnHTTP.SetParent(buttonPanel)
 	f.BtnHTTP.SetCaption("🌐 HTTP操作")
 	f.BtnHTTP.SetWidth(100)
 	f.BtnHTTP.SetHeight(30)
-	f.BtnHTTP.SetLeft(535) // 调整位置
-	f.BtnHTTP.SetTop(5)
+	f.BtnHTTP.SetLeft(10)
+	f.BtnHTTP.SetTop(85)
 	f.BtnHTTP.SetOnClick(f.onHTTPClick)
 
 	f.BtnDatabase = vcl.NewButton(f.TForm)
@@ -471,8 +486,8 @@ func (f *MainForm) createButtons() {
 	f.BtnDatabase.SetCaption("🗄️ 数据库操作")
 	f.BtnDatabase.SetWidth(100)
 	f.BtnDatabase.SetHeight(30)
-	f.BtnDatabase.SetLeft(535)
-	f.BtnDatabase.SetTop(5)
+	f.BtnDatabase.SetLeft(115)
+	f.BtnDatabase.SetTop(85)
 	f.BtnDatabase.SetOnClick(f.onDatabaseClick)
 
 	f.BtnConcurrent = vcl.NewButton(f.TForm)
@@ -480,17 +495,18 @@ func (f *MainForm) createButtons() {
 	f.BtnConcurrent.SetCaption("⚡ 多线程测试")
 	f.BtnConcurrent.SetWidth(100)
 	f.BtnConcurrent.SetHeight(30)
-	f.BtnConcurrent.SetLeft(10)
-	f.BtnConcurrent.SetTop(50) // 调整位置以适应新的面板高度
+	f.BtnConcurrent.SetLeft(220)
+	f.BtnConcurrent.SetTop(85)
 	f.BtnConcurrent.SetOnClick(f.onConcurrentClick)
 
+	// 第四行按钮 (2个)
 	f.BtnResizeColumns = vcl.NewButton(f.TForm)
 	f.BtnResizeColumns.SetParent(buttonPanel)
 	f.BtnResizeColumns.SetCaption("📏 调整列宽")
 	f.BtnResizeColumns.SetWidth(100)
 	f.BtnResizeColumns.SetHeight(30)
-	f.BtnResizeColumns.SetLeft(115)
-	f.BtnResizeColumns.SetTop(50) // 调整位置以适应新的面板高度
+	f.BtnResizeColumns.SetLeft(10)
+	f.BtnResizeColumns.SetTop(125)
 	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick)
 
 	f.BtnClose = vcl.NewButton(f.TForm)
@@ -498,8 +514,8 @@ func (f *MainForm) createButtons() {
 	f.BtnClose.SetCaption("❌ 关闭")
 	f.BtnClose.SetWidth(100)
 	f.BtnClose.SetHeight(30)
-	f.BtnClose.SetLeft(220)
-	f.BtnClose.SetTop(50) // 调整位置以适应新的面板高度
+	f.BtnClose.SetLeft(115)
+	f.BtnClose.SetTop(125)
 	f.BtnClose.SetOnClick(f.onCloseClick)
 
 	// 创建信息标签，放置在关闭按钮后面
@@ -511,8 +527,8 @@ func (f *MainForm) createButtons() {
 	fontStyle := f.LabelInfo.Font().Style()
 	fontStyle = fontStyle | types.TFontStyles(types.FsBold)
 	f.LabelInfo.Font().SetStyle(fontStyle)
-	f.LabelInfo.SetLeft(330)          // 修改位置到关闭按钮后面
-	f.LabelInfo.SetTop(50)            // 调整位置以适应新的面板高度
+	f.LabelInfo.SetLeft(220)          // 修改位置到关闭按钮后面
+	f.LabelInfo.SetTop(125)           // 调整位置到第四行
 	f.LabelInfo.SetColor(0xFFFFFF)    // 设置背景色为白色
 	f.LabelInfo.SetTransparent(false) // 确保背景色不透明
 }
@@ -1820,3 +1836,144 @@ func (f *MainForm) autoResizeColumns() {
 // 如果MainForm没有实现UIInterface接口的所有方法，编译器将在此处报错
 // 这是一种编译时检查机制，确保接口实现的完整性
 var _ interfaces.UIInterface = (*MainForm)(nil)
+
+// onSaveConfigClick 保存配置按钮点击事件
+// 该方法处理用户点击保存配置按钮的操作，将当前单选框、多选框、线程数量和任务数量的值保存到配置文件中
+func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
+	f.AddLog("=== 保存配置开始 ===")
+
+	// 获取当前配置值
+	threadCount := f.EditThreadCount.Value()
+	taskCount := f.EditTaskCount.Value()
+	radioOption1Checked := f.RadioOption1.Checked()
+	radioOption2Checked := f.RadioOption2.Checked()
+	checkBox1Checked := f.CheckBox1.Checked()
+	checkBox2Checked := f.CheckBox2.Checked()
+
+	// 记录当前配置值
+	f.AddLog(fmt.Sprintf("线程数量: %d", threadCount))
+	f.AddLog(fmt.Sprintf("任务数量: %d", taskCount))
+	f.AddLog(fmt.Sprintf("单选框1状态: %t", radioOption1Checked))
+	f.AddLog(fmt.Sprintf("单选框2状态: %t", radioOption2Checked))
+	f.AddLog(fmt.Sprintf("多选框1状态: %t", checkBox1Checked))
+	f.AddLog(fmt.Sprintf("多选框2状态: %t", checkBox2Checked))
+
+	// 创建配置数据结构
+	configData := map[string]interface{}{
+		"ThreadCount":    threadCount,
+		"TaskCount":      taskCount,
+		"RadioOption1":   radioOption1Checked,
+		"RadioOption2":   radioOption2Checked,
+		"CheckBox1":      checkBox1Checked,
+		"CheckBox2":      checkBox2Checked,
+		"LastUpdateTime": time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	// 使用JSON管理器保存配置到文件
+	if f.JSONManager != nil {
+		// 将配置数据转换为JSON字符串
+		configJSON, err := f.JSONManager.CreateJSON(configData)
+		if err != nil {
+			f.AddLog(fmt.Sprintf("配置数据转换为JSON失败: %v", err))
+			f.UpdateStatus("配置保存失败")
+			f.AddLog("=== 保存配置结束 ===")
+			return
+		}
+
+		// 保存JSON到配置文件
+		configFileName := "app_config.json"
+		if err := f.JSONManager.SaveJSONToFile(configJSON, configFileName); err != nil {
+			f.AddLog(fmt.Sprintf("保存配置文件失败: %v", err))
+			f.UpdateStatus("配置保存失败")
+		} else {
+			f.AddLog(fmt.Sprintf("配置已成功保存到文件: %s", configFileName))
+			f.UpdateStatus("配置保存成功")
+		}
+	} else {
+		f.AddLog("JSON管理器未初始化，无法保存配置")
+		f.UpdateStatus("配置保存失败")
+	}
+
+	f.AddLog("=== 保存配置结束 ===")
+}
+
+// loadConfig 加载配置文件
+// 该方法在程序启动时调用，从配置文件中读取保存的配置并应用到界面控件
+func (f *MainForm) loadConfig() {
+	f.AddLog("=== 加载配置开始 ===")
+
+	configFileName := "app_config.json"
+
+	// 检查配置文件是否存在
+	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
+		f.AddLog(fmt.Sprintf("配置文件不存在，使用默认配置: %s", configFileName))
+		f.UpdateStatus("使用默认配置")
+		f.AddLog("=== 加载配置结束 ===")
+		return
+	}
+
+	// 从文件加载JSON
+	if f.JSONManager == nil {
+		f.AddLog("JSON管理器未初始化，无法加载配置")
+		f.UpdateStatus("配置加载失败")
+		f.AddLog("=== 加载配置结束 ===")
+		return
+	}
+
+	jsonStr, err := f.JSONManager.LoadJSONFromFile(configFileName)
+	if err != nil {
+		f.AddLog(fmt.Sprintf("加载配置文件失败: %v", err))
+		f.UpdateStatus("配置加载失败")
+		f.AddLog("=== 加载配置结束 ===")
+		return
+	}
+
+	// 解析JSON
+	var configData map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &configData); err != nil {
+		f.AddLog(fmt.Sprintf("解析配置JSON失败: %v", err))
+		f.UpdateStatus("配置解析失败")
+		f.AddLog("=== 加载配置结束 ===")
+		return
+	}
+
+	// 从配置中获取值并设置到控件
+	if threadCount, ok := configData["ThreadCount"].(float64); ok {
+		f.EditThreadCount.SetValue(int32(threadCount))
+		f.AddLog(fmt.Sprintf("线程数量已设置为: %d", int32(threadCount)))
+	}
+
+	if taskCount, ok := configData["TaskCount"].(float64); ok {
+		f.EditTaskCount.SetValue(int32(taskCount))
+		f.AddLog(fmt.Sprintf("任务数量已设置为: %d", int32(taskCount)))
+	}
+
+	if radioOption1, ok := configData["RadioOption1"].(bool); ok {
+		f.RadioOption1.SetChecked(radioOption1)
+		f.AddLog(fmt.Sprintf("单选框1状态已设置为: %t", radioOption1))
+	}
+
+	if radioOption2, ok := configData["RadioOption2"].(bool); ok {
+		f.RadioOption2.SetChecked(radioOption2)
+		f.AddLog(fmt.Sprintf("单选框2状态已设置为: %t", radioOption2))
+	}
+
+	if checkBox1, ok := configData["CheckBox1"].(bool); ok {
+		f.CheckBox1.SetChecked(checkBox1)
+		f.AddLog(fmt.Sprintf("多选框1状态已设置为: %t", checkBox1))
+	}
+
+	if checkBox2, ok := configData["CheckBox2"].(bool); ok {
+		f.CheckBox2.SetChecked(checkBox2)
+		f.AddLog(fmt.Sprintf("多选框2状态已设置为: %t", checkBox2))
+	}
+
+	// 显示最后更新时间
+	if lastUpdateTime, ok := configData["LastUpdateTime"].(string); ok {
+		f.AddLog(fmt.Sprintf("配置最后更新时间: %s", lastUpdateTime))
+	}
+
+	// 更新状态栏
+	f.UpdateStatus("配置加载成功")
+	f.AddLog("=== 加载配置结束 ===")
+}
