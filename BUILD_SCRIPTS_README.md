@@ -1,0 +1,170 @@
+# 编译脚本使用说明
+
+本项目提供了多种编译脚本，用于编译Windows GUI应用程序并使用UPX进行压缩。
+
+## 脚本列表
+
+### 1. build_and_compress.bat
+- **描述**: 完整的编译和压缩流程脚本（最终版本）
+- **用法**: `.\build_and_compress.bat`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 检查Go环境
+  - 下载依赖包
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 显示压缩结果和文件大小
+
+### 2. build_and_run.bat
+- **描述**: 编译并运行应用程序的批处理脚本（最终版本）
+- **用法**: `.\build_and_run.bat`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 检查Go环境
+  - 下载依赖包
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 运行压缩后的应用程序
+
+### 3. build_and_compress.ps1
+- **描述**: 完整的编译和压缩流程PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_compress.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 检查Go环境
+  - 下载依赖包
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 显示压缩结果和文件大小
+
+### 4. build_and_run.ps1
+- **描述**: 编译并运行应用程序的PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 检查Go环境
+  - 下载依赖包
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 运行压缩后的应用程序
+
+### 5. build.ps1
+- **描述**: 基础编译PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 显示压缩结果和文件大小
+
+### 6. build_and_run_fixed.ps1
+- **描述**: 修复版编译并运行PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run_fixed.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 运行压缩后的应用程序
+
+### 7. build_and_run_simple.ps1
+- **描述**: 简化版编译并运行PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run_simple.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 运行压缩后的应用程序
+
+### 8. build_simple.ps1
+- **描述**: 简化版编译PowerShell脚本
+- **用法**: `powershell -ExecutionPolicy Bypass -File build_simple.ps1`
+- **功能**: 
+  - 清理之前的构建文件
+  - 创建资源文件（如果windres可用）
+  - 编译应用程序（使用liblcl.dll嵌入）
+  - 使用UPX压缩可执行文件
+  - 显示压缩结果和压缩率
+
+## 图标和Manifest支持
+
+所有编译脚本现在都支持自定义图标和manifest文件：
+
+### 资源文件
+- **app.rc**: 资源脚本文件，定义图标和版本信息
+- **app.ico**: 应用程序图标文件
+- **app.manifest**: Windows应用程序清单文件
+
+### 资源文件创建
+脚本会自动检查系统是否安装了windres工具（MinGW-w64的一部分）：
+- 如果windres可用：自动编译资源文件并嵌入到可执行文件中
+- 如果windres不可用：跳过资源文件创建，使用默认图标
+
+### 安装windres
+要启用自定义图标和manifest，需要安装MinGW-w64：
+1. 下载MinGW-w64安装程序
+2. 安装时选择适用于Windows的版本
+3. 将bin目录添加到系统PATH环境变量
+
+## 编译选项
+
+所有脚本都使用以下编译选项：
+- `-tags tempdll`: 启用liblcl.dll嵌入功能，将liblcl.dll嵌入到可执行文件中
+- `-ldflags "-w -s -H=windowsgui"`: 
+  - `-w`: 去除调试信息
+  - `-s`: 去除符号表
+  - `-H=windowsgui`: 创建Windows GUI应用程序（无控制台窗口）
+
+### liblcl.dll嵌入功能
+
+使用`-tags tempdll`编译标志后，liblcl.dll会被嵌入到可执行文件中，实现以下优势：
+
+1. **单一文件部署**: 不需要额外的DLL文件，简化了分发过程
+2. **减少依赖问题**: 避免了因DLL缺失或版本不匹配导致的问题
+3. **提高可移植性**: 程序可以在任何Windows系统上运行，无需额外配置
+4. **简化安装**: 用户只需下载一个可执行文件即可运行程序
+
+#### 工作原理
+
+1. **编译时嵌入**: 编译时将liblcl.dll嵌入到可执行文件中
+2. **运行时解压**: 程序首次运行时，会在临时文件目录创建DLL文件
+3. **自动加载**: 程序自动加载解压后的DLL文件，无需手动处理
+
+## UPX压缩选项
+
+所有脚本都使用以下UPX压缩选项：
+- `--best`: 使用最佳压缩级别
+- `--lzma`: 使用LZMA压缩算法
+
+## 压缩效果
+
+使用UPX压缩后，应用程序大小通常可以减少60-70%：
+- 原始大小: 约14.68 MB
+- 压缩后大小: 约4.71 MB
+- 压缩率: 约67.9%
+
+## 注意事项
+
+1. **UPX安装**: 确保已安装UPX并添加到系统PATH中。可以从 https://upx.github.io/ 下载
+2. **Go环境**: 确保已安装Go并配置好环境变量
+3. **依赖下载**: 编译前会自动下载依赖包，但需要网络连接
+4. **防病毒软件**: 某些防病毒软件可能会误报UPX压缩的可执行文件，这是正常现象
+5. **资源文件**: 如果windres不可用，将使用默认图标和版本信息
+
+## 故障排除
+
+1. **编译失败**: 检查Go环境是否正确配置
+2. **UPX压缩失败**: 检查UPX是否已安装并添加到PATH
+3. **程序无法运行**: 检查是否有足够的权限，以及防病毒软件是否拦截
+4. **图标未更新**: 检查是否安装了windres工具，并确保app.ico文件存在
+5. **资源文件创建失败**: 确保app.rc文件格式正确，且所有引用的文件都存在
+
+## 输出文件
+
+编译和压缩后的可执行文件位于 `dist/windows-gui-app.exe`，这是一个独立的Windows GUI应用程序，无需安装任何依赖即可运行。如果windres可用，应用程序将使用自定义图标和版本信息。

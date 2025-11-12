@@ -1,4 +1,6 @@
 // ui/MainForm.go - 简化版主窗口表单定义
+// 本文件定义了应用程序的主窗口界面，包括UI组件、事件处理和数据管理功能
+// 主窗口采用现代化设计，提供Excel操作、JSON处理、HTTP请求、数据库管理和多线程测试等功能
 package ui
 
 import (
@@ -14,39 +16,71 @@ import (
 )
 
 // MainForm 主窗口结构体
+// 封装了主窗口的所有UI组件和管理器实例，负责界面展示和用户交互
 type MainForm struct {
-	*vcl.TForm
+	*vcl.TForm // 嵌入VCL表单基类，继承表单的基本功能
 
-	// UI组件
-	PanelMain    *vcl.TPanel // 主面板
-	PanelButtons *vcl.TPanel // 按钮面板
-	PanelStatus  *vcl.TPanel // 状态面板
-	PanelTable   *vcl.TPanel // 表格面板
+	// UI组件 - 界面布局相关
+	PanelMain    *vcl.TPanel // 主面板 - 作为所有UI组件的容器
+	PanelButtons *vcl.TPanel // 按钮面板 - 包含所有功能按钮和参数配置
+	PanelStatus  *vcl.TPanel // 状态面板 - 包含状态栏
+	PanelTable   *vcl.TPanel // 表格面板 - 包含数据表格和输入编辑框
 
-	// 按钮组件
-	BtnExcel    *vcl.TButton // Excel操作按钮
-	BtnJSON     *vcl.TButton // JSON操作按钮
-	BtnHTTP     *vcl.TButton // HTTP操作按钮
-	BtnDatabase *vcl.TButton // 数据库操作按钮
-	BtnClose    *vcl.TButton // 关闭按钮
+	// 菜单组件 - 功能操作相关
+	MainMenu      *vcl.TMainMenu // 主菜单栏
+	FileMenu      *vcl.TMenuItem // 文件菜单
+	EditMenu      *vcl.TMenuItem // 编辑菜单
+	ToolsMenu     *vcl.TMenuItem // 工具菜单
+	HelpMenu      *vcl.TMenuItem // 帮助菜单
+	ClearEditItem *vcl.TMenuItem // 清空编辑框菜单项
 
-	// 状态和显示组件
-	StatusBar *vcl.TStatusBar  // 状态栏
-	TableData *vcl.TStringGrid // 数据表格
-	EditInput *vcl.TMemo       // 输入编辑框
-	LabelInfo *vcl.TLabel      // 信息标签
+	// 按钮组件 - 功能操作相关
+	BtnGetSelections *vcl.TButton // 获取选中状态按钮 - 用于获取单选框和多选框的选中状态
+	BtnImportExcel   *vcl.TButton // 导入Excel按钮 - 用于导入外部Excel文件
+	BtnImportImage   *vcl.TButton // 导入图片按钮 - 用于导入图片文件
+	BtnExcel         *vcl.TButton // Excel操作按钮 - 用于测试Excel相关功能
+	BtnJSON          *vcl.TButton // JSON操作按钮 - 用于测试JSON处理功能
+	BtnHTTP          *vcl.TButton // HTTP操作按钮 - 用于测试网络请求功能
+	BtnDatabase      *vcl.TButton // 数据库操作按钮 - 用于测试数据库功能
+	BtnConcurrent    *vcl.TButton // 多线程操作按钮 - 用于测试并发任务执行
+	BtnResizeColumns *vcl.TButton // 调整列宽按钮 - 用于调整表格列宽
+	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
-	// 管理器
-	ExcelManager *managers.ExcelManager
-	JSONManager  *managers.JSONManager
-	HTTPManager  *managers.HTTPManager
-	DBManager    *managers.DatabaseManager
+	// 输入组件 - 参数配置相关
+	EditThreadCount *vcl.TSpinEdit // 线程数量编辑框 - 用于设置并发测试的线程数
+	EditTaskCount   *vcl.TSpinEdit // 任务数量编辑框 - 用于设置并发测试的任务数
+	LabelThread     *vcl.TLabel    // 线程数量标签 - 线程数量编辑框的说明标签
+	LabelTask       *vcl.TLabel    // 任务数量标签 - 任务数量编辑框的说明标签
+
+	// 单选框组件 - 选项配置相关
+	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1
+	RadioOption2 *vcl.TRadioButton // 单选框2 - 用于选项2
+
+	// 多选框组件 - 选项配置相关
+	CheckBox1 *vcl.TCheckBox // 多选框1 - 用于选项1
+	CheckBox2 *vcl.TCheckBox // 多选框2 - 用于选项2
+
+	// 状态和显示组件 - 数据展示相关
+	StatusBar *vcl.TStatusBar  // 状态栏 - 显示应用程序当前状态
+	TableData *vcl.TStringGrid // 数据表格 - 用于展示表格数据
+	ImageBox  *vcl.TImage      // 图片框 - 用于显示用户导入的图片
+	EditInput *vcl.TMemo       // 输入编辑框 - 用于显示日志和操作结果
+	LabelInfo *vcl.TLabel      // 信息标签 - 显示应用程序信息
+
+	// 管理器 - 功能实现相关
+	ExcelManager      *managers.ExcelManager      // Excel管理器 - 处理Excel文件导入导出
+	JSONManager       *managers.JSONManager       // JSON管理器 - 处理JSON数据解析生成
+	HTTPManager       *managers.HTTPManager       // HTTP管理器 - 处理网络请求和文件下载
+	DBManager         *managers.DatabaseManager   // 数据库管理器 - 处理SQLite数据库操作
+	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行
 
 	// 时间相关
-	lastUpdate time.Time // 最后更新时间
+	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间
 }
 
 // NewMainForm 创建新的主窗口实例
+// 返回一个初始化完成的MainForm指针，包含所有必要的管理器实例
+// 该函数负责创建窗口基础结构、初始化管理器并设置基本属性
 func NewMainForm() *MainForm {
 	form := &MainForm{
 		lastUpdate: time.Now(),
@@ -56,7 +90,7 @@ func NewMainForm() *MainForm {
 	form.TForm = vcl.Application.CreateForm()
 	form.TForm.SetCaption("GO VCL 多功能演示程序")
 	form.TForm.SetWidth(1024)
-	form.TForm.SetHeight(768)
+	form.TForm.SetHeight(568)
 	form.TForm.SetPosition(types.PoScreenCenter)
 	form.TForm.SetOnClose(form.onClose)
 	form.TForm.SetOnShow(form.onShow)
@@ -75,22 +109,32 @@ func NewMainForm() *MainForm {
 	dbManager := managers.NewDatabaseManager(nil)
 	dbManager.SetUIInstance(form)
 
+	concurrentManager := managers.NewConcurrentManager(nil)
+	concurrentManager.SetUIInstance(form)
+
 	form.ExcelManager = excelManager
 	form.JSONManager = jsonManager
 	form.HTTPManager = httpManager
 	form.DBManager = dbManager
+	form.ConcurrentManager = concurrentManager
 
 	return form
 }
 
 // Show 显示窗口
+// 该方法负责创建用户界面、应用样式并显示窗口
+// 在调用此方法前，窗口的所有组件和管理器应该已经初始化完成
 func (f *MainForm) Show() {
 	f.createUI()
+	f.applyUIStyles()
 	f.TForm.Show()
 }
 
 // createUI 创建用户界面
 func (f *MainForm) createUI() {
+	// 创建主菜单
+	f.createMainMenu()
+
 	// 创建主面板
 	f.PanelMain = vcl.NewPanel(f.TForm)
 	f.PanelMain.SetParent(f.TForm)
@@ -101,7 +145,7 @@ func (f *MainForm) createUI() {
 	f.PanelButtons = vcl.NewPanel(f.TForm)
 	f.PanelButtons.SetParent(f.PanelMain)
 	f.PanelButtons.SetAlign(types.AlTop)
-	f.PanelButtons.SetHeight(80)
+	f.PanelButtons.SetHeight(100) // 增加高度以适应单选框
 	f.PanelButtons.SetBevelOuter(types.BvNone)
 
 	// 创建按钮
@@ -118,8 +162,11 @@ func (f *MainForm) createUI() {
 	f.StatusBar = vcl.NewStatusBar(f.TForm)
 	f.StatusBar.SetParent(f.PanelStatus)
 	f.StatusBar.SetAlign(types.AlClient)
-	f.StatusBar.Panels().Add()
-	f.StatusBar.Panels().Items(0).SetText("就绪")
+	// f.StatusBar.SetTextBuf("就绪")
+	// f.StatusBar.Show()
+
+	// f.StatusBar.Panels().Add()
+	// f.StatusBar.Panels().Items(0).SetText("就绪")
 
 	// 创建表格面板
 	f.PanelTable = vcl.NewPanel(f.TForm)
@@ -127,17 +174,51 @@ func (f *MainForm) createUI() {
 	f.PanelTable.SetAlign(types.AlClient)
 	f.PanelTable.SetBevelOuter(types.BvNone)
 
+	// 创建左侧面板，包含数据表格
+	leftPanel := vcl.NewPanel(f.TForm)
+	leftPanel.SetParent(f.PanelTable)
+	leftPanel.SetAlign(types.AlLeft)
+	leftPanel.SetWidth(600)
+	leftPanel.SetBevelOuter(types.BvNone)
+
 	// 创建数据表格（修复索引越界问题）
 	f.TableData = vcl.NewStringGrid(f.TForm)
-	f.TableData.SetParent(f.PanelTable)
-	f.TableData.SetAlign(types.AlLeft)
-	f.TableData.SetWidth(400)
-	gridOptions := f.TableData.Options()
-	gridOptions = gridOptions | types.TGridOptions(types.GoRowSelect)
+	f.TableData.SetParent(leftPanel)
+	f.TableData.SetAlign(types.AlClient)
+
+	// 首先设置固定行列
+	f.TableData.SetFixedRows(1)
+	f.TableData.SetFixedCols(0) // 设置为0，允许调整所有列
+
+	// 设置表格选项，确保支持列宽调整
+	gridOptions := types.TGridOptions(0) // 从零开始设置选项
+	gridOptions = gridOptions | types.TGridOptions(types.GoRowSelect) |
+		types.TGridOptions(types.GoColSizing) |
+		types.TGridOptions(types.GoThumbTracking) |
+		types.TGridOptions(types.GoColMoving) |
+		types.TGridOptions(types.GoTabs) |
+		types.TGridOptions(types.GoRowMoving) |
+		types.TGridOptions(types.GoDrawFocusSelected)
 	f.TableData.SetOptions(gridOptions)
+
+	// 设置行列数
 	f.TableData.SetRowCount(5)
 	f.TableData.SetColCount(3)
-	
+
+	// 设置默认列宽
+	f.TableData.SetDefaultColWidth(100)
+
+	// 再次设置固定行列，确保设置生效
+	f.TableData.SetFixedRows(1)
+	f.TableData.SetFixedCols(0)
+
+	log.Printf("表格初始化选项已设置: %v", gridOptions)
+
+	// 设置初始列宽
+	f.TableData.SetColWidths(0, 100) // 第一列宽度
+	f.TableData.SetColWidths(1, 80)  // 第二列宽度
+	f.TableData.SetColWidths(2, 420) // 第三列宽度
+
 	// 统一使用列, 行的参数顺序添加表格数据
 	// 确保每次调用都在有效范围内
 	defer func() {
@@ -145,7 +226,7 @@ func (f *MainForm) createUI() {
 			log.Printf("表格初始化时发生panic: %v", r)
 		}
 	}()
-	
+
 	// 使用安全的索引设置表格数据
 	tableData := [][]string{
 		{"功能", "状态", "描述"},
@@ -153,8 +234,9 @@ func (f *MainForm) createUI() {
 		{"JSON操作", "待测试", "解析/生成JSON数据"},
 		{"HTTP操作", "待测试", "网络请求和下载"},
 		{"数据库操作", "待测试", "SQLite数据库管理"},
+		{"多线程操作", "待测试", "并发任务执行测试"},
 	}
-	
+
 	// 安全地设置所有单元格
 	for r, row := range tableData {
 		if r < 0 || r >= 5 {
@@ -166,106 +248,369 @@ func (f *MainForm) createUI() {
 				log.Printf("跳过无效列索引: %d", c)
 				continue
 			}
-			
+
 			// 使用列, 行的参数顺序调用SetCells
-			colParam := int32(c)  // 列在前
-			rowParam := int32(r)  // 行在后
-			
+			colParam := int32(c) // 列在前
+			rowParam := int32(r) // 行在后
+
 			log.Printf("设置表格单元格: (列=%d, 行=%d) = '%s'", colParam, rowParam, cell)
 			f.TableData.SetCells(colParam, rowParam, cell)
 		}
 	}
 
+	// 创建右侧面板，包含图片框和输入编辑框
+	rightPanel := vcl.NewPanel(f.TForm)
+	rightPanel.SetParent(f.PanelTable)
+	rightPanel.SetAlign(types.AlClient)
+	rightPanel.SetBevelOuter(types.BvNone)
+
+	// 创建图片框容器面板，用于显示边框
+	imagePanel := vcl.NewPanel(f.TForm)
+	imagePanel.SetParent(rightPanel)
+	imagePanel.SetAlign(types.AlTop)
+	imagePanel.SetHeight(200)
+	imagePanel.SetBevelOuter(types.BvLowered) // 设置边框样式
+
+	// 创建图片框
+	f.ImageBox = vcl.NewImage(f.TForm)
+	f.ImageBox.SetParent(imagePanel)
+	f.ImageBox.SetAlign(types.AlClient) // 填充整个面板
+	f.ImageBox.SetCenter(true)
+	f.ImageBox.SetStretch(true)
+	f.ImageBox.SetProportional(true)
+
 	// 创建输入编辑框
 	f.EditInput = vcl.NewMemo(f.TForm)
-	f.EditInput.SetParent(f.PanelTable)
+	f.EditInput.SetParent(rightPanel)
 	f.EditInput.SetAlign(types.AlClient)
 	f.EditInput.SetScrollBars(types.SsBoth)
 	f.EditInput.SetReadOnly(true)
-	f.EditInput.SetText("欢迎使用 GO VCL 多功能演示程序！\n\n本程序提供以下功能：\n\n1. Excel操作 - 导入/导出Excel文件\n2. JSON操作 - 解析/生成JSON数据\n3. HTTP操作 - 网络请求和文件下载\n4. 数据库操作 - SQLite数据库管理\n\n请点击上方按钮开始使用。")
-
-	// 创建信息标签
-	f.LabelInfo = vcl.NewLabel(f.TForm)
-	f.LabelInfo.SetParent(f.PanelButtons)
-	f.LabelInfo.SetCaption("GO VCL 多功能演示程序 v1.0")
-	f.LabelInfo.Font().SetSize(14)
-	fontStyle := f.LabelInfo.Font().Style()
-	fontStyle = fontStyle | types.TFontStyles(types.FsBold)
-	f.LabelInfo.Font().SetStyle(fontStyle)
-	f.LabelInfo.SetLeft(20)
-	f.LabelInfo.SetTop(10)
+	f.EditInput.SetText("欢迎使用 GO VCL 多功能演示程序！\n\n本程序提供以下功能：\n\n1. Excel操作 - 导入/导出Excel文件\n2. JSON操作 - 解析/生成JSON数据\n3. HTTP操作 - 网络请求和文件下载\n4. 数据库操作 - SQLite数据库管理\n5. 图片导入 - 导入并显示图片\n\n请点击上方按钮开始使用。")
 
 	// 设置事件处理
 	f.setupEvents()
 }
 
+// createMainMenu 创建主菜单
+func (f *MainForm) createMainMenu() {
+	// 创建主菜单栏
+	f.MainMenu = vcl.NewMainMenu(f.TForm)
+
+	// 创建文件菜单
+	f.FileMenu = vcl.NewMenuItem(f.TForm)
+	f.FileMenu.SetCaption("文件(&F)")
+	f.MainMenu.Items().Add(f.FileMenu)
+
+	// 创建编辑菜单
+	f.EditMenu = vcl.NewMenuItem(f.TForm)
+	f.EditMenu.SetCaption("编辑(&E)")
+	f.MainMenu.Items().Add(f.EditMenu)
+
+	// 添加清空编辑框菜单项到编辑菜单
+	f.ClearEditItem = vcl.NewMenuItem(f.TForm)
+	f.ClearEditItem.SetCaption("清空编辑框(&C)")
+	f.ClearEditItem.SetOnClick(f.onClearEditClick)
+	f.EditMenu.Add(f.ClearEditItem)
+
+	// 创建工具菜单
+	f.ToolsMenu = vcl.NewMenuItem(f.TForm)
+	f.ToolsMenu.SetCaption("工具(&T)")
+	f.MainMenu.Items().Add(f.ToolsMenu)
+
+	// 创建帮助菜单
+	f.HelpMenu = vcl.NewMenuItem(f.TForm)
+	f.HelpMenu.SetCaption("帮助(&H)")
+	f.MainMenu.Items().Add(f.HelpMenu)
+}
+
 // createButtons 创建按钮组件
 func (f *MainForm) createButtons() {
-	// Excel操作按钮
+	// 创建一个现代化的按钮面板布局
+	// 使用表格布局来优化按钮排列
+
+	// 创建参数配置区域面板
+	configPanel := vcl.NewPanel(f.TForm)
+	configPanel.SetParent(f.PanelButtons)
+	configPanel.SetAlign(types.AlLeft)
+	configPanel.SetWidth(330) // 增加宽度以容纳多选框
+	configPanel.SetBevelOuter(types.BvNone)
+	configPanel.SetHeight(80) // 增加高度以容纳单选框
+
+	// 创建参数标签和编辑框
+	f.LabelThread = vcl.NewLabel(f.TForm)
+	f.LabelThread.SetParent(configPanel)
+	f.LabelThread.SetCaption("线程数量:")
+	f.LabelThread.SetLeft(10)
+	f.LabelThread.SetTop(10)
+	f.LabelThread.SetWidth(70)
+
+	f.EditThreadCount = vcl.NewSpinEdit(f.TForm)
+	f.EditThreadCount.SetParent(configPanel)
+	f.EditThreadCount.SetLeft(85)
+	f.EditThreadCount.SetTop(8)
+	f.EditThreadCount.SetWidth(80)
+	f.EditThreadCount.SetMinValue(1)
+	f.EditThreadCount.SetMaxValue(100)
+	f.EditThreadCount.SetValue(8)
+
+	f.LabelTask = vcl.NewLabel(f.TForm)
+	f.LabelTask.SetParent(configPanel)
+	f.LabelTask.SetCaption("任务数量:")
+	f.LabelTask.SetLeft(10)
+	f.LabelTask.SetTop(35)
+	f.LabelTask.SetWidth(70)
+
+	f.EditTaskCount = vcl.NewSpinEdit(f.TForm)
+	f.EditTaskCount.SetParent(configPanel)
+	f.EditTaskCount.SetLeft(85)
+	f.EditTaskCount.SetTop(33)
+	f.EditTaskCount.SetWidth(80)
+	f.EditTaskCount.SetMinValue(1)
+	f.EditTaskCount.SetMaxValue(1000)
+	f.EditTaskCount.SetValue(50)
+
+	// 创建单选框
+	f.RadioOption1 = vcl.NewRadioButton(f.TForm)
+	f.RadioOption1.SetParent(configPanel)
+	f.RadioOption1.SetCaption("选项 1")
+	f.RadioOption1.SetLeft(10)
+	f.RadioOption1.SetTop(60)
+	f.RadioOption1.SetWidth(70)
+	f.RadioOption1.SetChecked(true) // 默认选中第一个选项
+
+	f.RadioOption2 = vcl.NewRadioButton(f.TForm)
+	f.RadioOption2.SetParent(configPanel)
+	f.RadioOption2.SetCaption("选项 2")
+	f.RadioOption2.SetLeft(85)
+	f.RadioOption2.SetTop(60)
+	f.RadioOption2.SetWidth(70)
+
+	// 创建多选框
+	f.CheckBox1 = vcl.NewCheckBox(f.TForm)
+	f.CheckBox1.SetParent(configPanel)
+	f.CheckBox1.SetCaption("多选 1")
+	f.CheckBox1.SetLeft(170)
+	f.CheckBox1.SetTop(60)
+	f.CheckBox1.SetWidth(70)
+
+	f.CheckBox2 = vcl.NewCheckBox(f.TForm)
+	f.CheckBox2.SetParent(configPanel)
+	f.CheckBox2.SetCaption("多选 2")
+	f.CheckBox2.SetLeft(245)
+	f.CheckBox2.SetTop(60)
+	f.CheckBox2.SetWidth(70)
+
+	// 创建功能按钮面板
+	buttonPanel := vcl.NewPanel(f.TForm)
+	buttonPanel.SetParent(f.PanelButtons)
+	buttonPanel.SetAlign(types.AlClient)
+	buttonPanel.SetBevelOuter(types.BvNone)
+
+	// 设置按钮面板高度以适应7个按钮的布局
+	buttonPanel.SetHeight(95) // 增加高度以适应新的按钮面板高度
+
+	// 创建按钮 - 使用网格布局优化视觉效果
+
+	// 第一行按钮
+	f.BtnGetSelections = vcl.NewButton(f.TForm)
+	f.BtnGetSelections.SetParent(buttonPanel)
+	f.BtnGetSelections.SetCaption("🔍 获取选中状态")
+	f.BtnGetSelections.SetWidth(100)
+	f.BtnGetSelections.SetHeight(30)
+	f.BtnGetSelections.SetLeft(10)
+	f.BtnGetSelections.SetTop(5)
+	f.BtnGetSelections.SetOnClick(f.onGetSelectionsClick)
+
+	f.BtnImportExcel = vcl.NewButton(f.TForm)
+	f.BtnImportExcel.SetParent(buttonPanel)
+	f.BtnImportExcel.SetCaption("📊 导入Excel")
+	f.BtnImportExcel.SetWidth(100)
+	f.BtnImportExcel.SetHeight(30)
+	f.BtnImportExcel.SetLeft(115)
+	f.BtnImportExcel.SetTop(5)
+	f.BtnImportExcel.SetOnClick(f.onImportExcelClick)
+
+	f.BtnImportImage = vcl.NewButton(f.TForm)
+	f.BtnImportImage.SetParent(buttonPanel)
+	f.BtnImportImage.SetCaption("🖼️ 导入图片")
+	f.BtnImportImage.SetWidth(100)
+	f.BtnImportImage.SetHeight(30)
+	f.BtnImportImage.SetLeft(220) // 调整位置
+	f.BtnImportImage.SetTop(5)
+	f.BtnImportImage.SetOnClick(f.onImportImageClick)
+
 	f.BtnExcel = vcl.NewButton(f.TForm)
-	f.BtnExcel.SetParent(f.PanelButtons)
-	f.BtnExcel.SetCaption("Excel操作")
-	f.BtnExcel.SetWidth(120)
-	f.BtnExcel.SetHeight(40)
-	f.BtnExcel.SetLeft(200)
-	f.BtnExcel.SetTop(25)
+	f.BtnExcel.SetParent(buttonPanel)
+	f.BtnExcel.SetCaption("📈 Excel操作")
+	f.BtnExcel.SetWidth(100)
+	f.BtnExcel.SetHeight(30)
+	f.BtnExcel.SetLeft(325) // 调整位置
+	f.BtnExcel.SetTop(5)
 	f.BtnExcel.SetOnClick(f.onExcelClick)
 
-	// JSON操作按钮
 	f.BtnJSON = vcl.NewButton(f.TForm)
-	f.BtnJSON.SetParent(f.PanelButtons)
-	f.BtnJSON.SetCaption("JSON操作")
-	f.BtnJSON.SetWidth(120)
-	f.BtnJSON.SetHeight(40)
-	f.BtnJSON.SetLeft(330)
-	f.BtnJSON.SetTop(25)
+	f.BtnJSON.SetParent(buttonPanel)
+	f.BtnJSON.SetCaption("📋 JSON操作")
+	f.BtnJSON.SetWidth(100)
+	f.BtnJSON.SetHeight(30)
+	f.BtnJSON.SetLeft(430) // 调整位置
+	f.BtnJSON.SetTop(5)
 	f.BtnJSON.SetOnClick(f.onJSONClick)
 
-	// HTTP操作按钮
 	f.BtnHTTP = vcl.NewButton(f.TForm)
-	f.BtnHTTP.SetParent(f.PanelButtons)
-	f.BtnHTTP.SetCaption("HTTP操作")
-	f.BtnHTTP.SetWidth(120)
-	f.BtnHTTP.SetHeight(40)
-	f.BtnHTTP.SetLeft(460)
-	f.BtnHTTP.SetTop(25)
+	f.BtnHTTP.SetParent(buttonPanel)
+	f.BtnHTTP.SetCaption("🌐 HTTP操作")
+	f.BtnHTTP.SetWidth(100)
+	f.BtnHTTP.SetHeight(30)
+	f.BtnHTTP.SetLeft(535) // 调整位置
+	f.BtnHTTP.SetTop(5)
 	f.BtnHTTP.SetOnClick(f.onHTTPClick)
 
-	// 数据库操作按钮
 	f.BtnDatabase = vcl.NewButton(f.TForm)
-	f.BtnDatabase.SetParent(f.PanelButtons)
-	f.BtnDatabase.SetCaption("数据库操作")
-	f.BtnDatabase.SetWidth(120)
-	f.BtnDatabase.SetHeight(40)
-	f.BtnDatabase.SetLeft(590)
-	f.BtnDatabase.SetTop(25)
+	f.BtnDatabase.SetParent(buttonPanel)
+	f.BtnDatabase.SetCaption("🗄️ 数据库操作")
+	f.BtnDatabase.SetWidth(100)
+	f.BtnDatabase.SetHeight(30)
+	f.BtnDatabase.SetLeft(535)
+	f.BtnDatabase.SetTop(5)
 	f.BtnDatabase.SetOnClick(f.onDatabaseClick)
 
-	// 关闭按钮
+	f.BtnConcurrent = vcl.NewButton(f.TForm)
+	f.BtnConcurrent.SetParent(buttonPanel)
+	f.BtnConcurrent.SetCaption("⚡ 多线程测试")
+	f.BtnConcurrent.SetWidth(100)
+	f.BtnConcurrent.SetHeight(30)
+	f.BtnConcurrent.SetLeft(10)
+	f.BtnConcurrent.SetTop(50) // 调整位置以适应新的面板高度
+	f.BtnConcurrent.SetOnClick(f.onConcurrentClick)
+
+	f.BtnResizeColumns = vcl.NewButton(f.TForm)
+	f.BtnResizeColumns.SetParent(buttonPanel)
+	f.BtnResizeColumns.SetCaption("📏 调整列宽")
+	f.BtnResizeColumns.SetWidth(100)
+	f.BtnResizeColumns.SetHeight(30)
+	f.BtnResizeColumns.SetLeft(115)
+	f.BtnResizeColumns.SetTop(50) // 调整位置以适应新的面板高度
+	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick)
+
 	f.BtnClose = vcl.NewButton(f.TForm)
-	f.BtnClose.SetParent(f.PanelButtons)
-	f.BtnClose.SetCaption("关闭")
-	f.BtnClose.SetWidth(80)
-	f.BtnClose.SetHeight(40)
-	f.BtnClose.SetLeft(750)
-	f.BtnClose.SetTop(25)
+	f.BtnClose.SetParent(buttonPanel)
+	f.BtnClose.SetCaption("❌ 关闭")
+	f.BtnClose.SetWidth(100)
+	f.BtnClose.SetHeight(30)
+	f.BtnClose.SetLeft(220)
+	f.BtnClose.SetTop(50) // 调整位置以适应新的面板高度
 	f.BtnClose.SetOnClick(f.onCloseClick)
+
+	// 创建信息标签，放置在关闭按钮后面
+	f.LabelInfo = vcl.NewLabel(f.TForm)
+	f.LabelInfo.SetParent(buttonPanel)
+	f.LabelInfo.SetCaption("GO VCL 多功能演示程序 v1.0")
+	f.LabelInfo.Font().SetSize(14)
+	f.LabelInfo.Font().SetColor(0x0000FF) // 设置字体颜色为红色
+	fontStyle := f.LabelInfo.Font().Style()
+	fontStyle = fontStyle | types.TFontStyles(types.FsBold)
+	f.LabelInfo.Font().SetStyle(fontStyle)
+	f.LabelInfo.SetLeft(330)          // 修改位置到关闭按钮后面
+	f.LabelInfo.SetTop(50)            // 调整位置以适应新的面板高度
+	f.LabelInfo.SetColor(0xFFFFFF)    // 设置背景色为白色
+	f.LabelInfo.SetTransparent(false) // 确保背景色不透明
 }
 
 // setupEvents 设置事件处理
 func (f *MainForm) setupEvents() {
-	// 这里可以设置各种事件处理
+	// 设置表格事件处理
+	if f.TableData != nil {
+		// TStringGrid没有直接的列宽调整事件，但我们可以使用鼠标事件来检测
+		f.TableData.SetOnMouseDown(f.onTableMouseDown)
+		f.TableData.SetOnMouseUp(f.onTableMouseUp)
+	}
+
+	// 设置单选框事件处理
+	if f.RadioOption1 != nil {
+		f.RadioOption1.SetOnClick(f.onRadioOption1Click)
+	}
+
+	if f.RadioOption2 != nil {
+		f.RadioOption2.SetOnClick(f.onRadioOption2Click)
+	}
+
+	// 设置多选框事件处理
+	if f.CheckBox1 != nil {
+		f.CheckBox1.SetOnClick(f.onCheckBox1Click)
+	}
+
+	if f.CheckBox2 != nil {
+		f.CheckBox2.SetOnClick(f.onCheckBox2Click)
+	}
+}
+
+// onTableMouseDown 表格鼠标按下事件
+func (f *MainForm) onTableMouseDown(sender vcl.IObject, button types.TMouseButton, shift types.TShiftState, x, y int32) {
+	// 记录鼠标按下时的位置，用于后续判断是否进行了列宽调整
+	log.Printf("表格鼠标按下事件: 按钮=%v, 位置=(%d,%d)", button, x, y)
+
+	// 检查是否在列边界附近（用于列宽调整）
+	if f.TableData != nil {
+		// 获取表格选项，确认列宽调整已启用
+		options := f.TableData.Options()
+		isColSizingEnabled := (options & types.TGridOptions(types.GoColSizing)) != 0
+		log.Printf("列宽调整选项已启用: %v", isColSizingEnabled)
+
+		// 如果列宽调整未启用，重新设置表格选项
+		if !isColSizingEnabled {
+			log.Printf("重新启用列宽调整选项...")
+			newOptions := types.TGridOptions(0)
+			newOptions = newOptions | types.TGridOptions(types.GoRowSelect) |
+				types.TGridOptions(types.GoColSizing) |
+				types.TGridOptions(types.GoThumbTracking) |
+				types.TGridOptions(types.GoColMoving) |
+				types.TGridOptions(types.GoTabs) |
+				types.TGridOptions(types.GoRowMoving) |
+				types.TGridOptions(types.GoDrawFocusSelected)
+			f.TableData.SetOptions(newOptions)
+			log.Printf("表格选项已重新设置: %v", newOptions)
+		}
+	}
+}
+
+// onTableMouseUp 表格鼠标释放事件
+// 该方法处理表格组件的鼠标释放事件，主要用于完成表格操作后的状态更新
+// 特别关注列宽调整后的状态检查和日志记录
+func (f *MainForm) onTableMouseUp(sender vcl.IObject, button types.TMouseButton, shift types.TShiftState, x, y int32) {
+	// 记录鼠标释放时的位置
+	log.Printf("表格鼠标释放事件: 按钮=%v, 位置=(%d,%d)", button, x, y)
+
+	// 检查表格选项是否仍然包含列宽调整
+	if f.TableData != nil {
+		options := f.TableData.Options()
+		isColSizingEnabled := (options & types.TGridOptions(types.GoColSizing)) != 0
+		log.Printf("列宽调整选项状态: %v", isColSizingEnabled)
+
+		// 输出当前列宽信息
+		colCount := f.TableData.ColCount()
+		var colWidths []int32
+		for i := int32(0); i < colCount; i++ {
+			width := f.TableData.ColWidths(i)
+			colWidths = append(colWidths, width)
+		}
+		log.Printf("当前列宽: %v", colWidths)
+	}
 }
 
 // 事件处理函数
 
 // onShow 窗口显示事件
+// 该方法在窗口显示时被调用，用于初始化窗口状态和显示欢迎信息
+// 这是窗口生命周期中的重要事件，通常用于完成界面初始化后的准备工作
 func (f *MainForm) onShow(sender vcl.IObject) {
 	f.UpdateStatus("程序已启动就绪")
 	log.Println("主窗口已显示")
 }
 
 // onClose 窗口关闭事件
+// 该方法在用户尝试关闭窗口时被调用，用于处理程序退出前的清理工作
+// 通过设置action参数控制窗口关闭行为，CaFree表示关闭后释放窗口资源
 func (f *MainForm) onClose(sender vcl.IObject, action *types.TCloseAction) {
 	log.Println("程序正在退出...")
 	f.UpdateStatus("程序退出")
@@ -273,8 +618,70 @@ func (f *MainForm) onClose(sender vcl.IObject, action *types.TCloseAction) {
 }
 
 // onCloseClick 关闭按钮点击事件
+// 该方法处理用户点击关闭按钮的操作，直接调用窗口的Close方法
+// 这是用户主动退出应用程序的主要方式之一
 func (f *MainForm) onCloseClick(sender vcl.IObject) {
 	f.TForm.Close()
+}
+
+// onImportExcelClick 导入Excel按钮事件
+func (f *MainForm) onImportExcelClick(sender vcl.IObject) {
+	f.AddLog("=== Excel文件导入开始 ===")
+
+	// 创建文件对话框
+	dialog := vcl.NewOpenDialog(f.TForm)
+	dialog.SetFilter("Excel文件 (*.xlsx)|*.xlsx|所有文件 (*.*)|*.*")
+	dialog.SetTitle("选择要导入的Excel文件")
+
+	// 显示文件选择对话框
+	if dialog.Execute() {
+		filePath := dialog.FileName()
+		f.AddLog(fmt.Sprintf("选择文件: %s", filePath))
+
+		// 调用Excel管理器的导入功能
+		if err := f.ExcelManager.ImportExcel(filePath); err != nil {
+			f.AddLog(fmt.Sprintf("导入Excel文件失败: %v", err))
+			f.UpdateStatus("Excel文件导入失败")
+		} else {
+			f.AddLog("Excel文件导入成功！")
+			f.AddLog("数据已显示在下方表格中")
+			f.UpdateStatus("Excel文件导入完成")
+		}
+	} else {
+		f.AddLog("用户取消了文件选择")
+		f.UpdateStatus("Excel文件导入已取消")
+	}
+
+	f.AddLog("=== Excel文件导入结束 ===")
+}
+
+// onImportImageClick 导入图片按钮事件
+func (f *MainForm) onImportImageClick(sender vcl.IObject) {
+	f.AddLog("=== 图片导入开始 ===")
+
+	// 创建文件对话框
+	dialog := vcl.NewOpenDialog(f.TForm)
+	dialog.SetFilter("图片文件 (*.jpg;*.jpeg;*.png;*.bmp;*.gif)|*.jpg;*.jpeg;*.png;*.bmp;*.gif|所有文件 (*.*)|*.*")
+	dialog.SetTitle("选择要导入的图片文件")
+
+	// 显示文件选择对话框
+	if dialog.Execute() {
+		filePath := dialog.FileName()
+		f.AddLog(fmt.Sprintf("选择图片文件: %s", filePath))
+
+		// 加载图片到图片框
+		picture := vcl.NewPicture()
+		picture.LoadFromFile(filePath)
+		f.ImageBox.Picture().Assign(picture)
+		f.AddLog("图片加载成功！")
+		f.AddLog(fmt.Sprintf("图片尺寸: %d x %d", picture.Width(), picture.Height()))
+		f.UpdateStatus("图片导入完成")
+	} else {
+		f.AddLog("用户取消了文件选择")
+		f.UpdateStatus("图片导入已取消")
+	}
+
+	f.AddLog("=== 图片导入结束 ===")
 }
 
 // onExcelClick Excel操作按钮事件
@@ -604,23 +1011,308 @@ func (f *MainForm) onDatabaseClick(sender vcl.IObject) {
 		f.TableData.SetCells(1, 4, "完成")
 		log.Printf("表格状态已更新: (列=1, 行=4) = '完成'")
 	} else {
-		log.Printf("表格尺寸不足以更新状态，表格尺寸: %dx%d", 
-			func() int32 { defer func(){}(); return f.TableData.RowCount() }(),
-			func() int32 { defer func(){}(); return f.TableData.ColCount() }())
+		log.Printf("表格尺寸不足以更新状态，表格尺寸: %dx%d",
+			func() int32 { defer func() {}(); return f.TableData.RowCount() }(),
+			func() int32 { defer func() {}(); return f.TableData.ColCount() }())
 	}
 
 	log.Println("数据库操作测试完成")
 }
 
+// onRadioOption1Click 单选框1选中事件
+func (f *MainForm) onRadioOption1Click(sender vcl.IObject) {
+	if f.RadioOption1 != nil && f.RadioOption1.Checked() {
+		f.AddLog("单选框1被选中: 选项 1")
+		log.Println("单选框1被选中: 选项 1")
+
+		// 确保单选框2不被选中
+		if f.RadioOption2 != nil {
+			f.RadioOption2.SetChecked(false)
+		}
+	}
+}
+
+// onRadioOption2Click 单选框2选中事件
+func (f *MainForm) onRadioOption2Click(sender vcl.IObject) {
+	if f.RadioOption2 != nil && f.RadioOption2.Checked() {
+		f.AddLog("单选框2被选中: 选项 2")
+		log.Println("单选框2被选中: 选项 2")
+
+		// 确保单选框1不被选中
+		if f.RadioOption1 != nil {
+			f.RadioOption1.SetChecked(false)
+		}
+	}
+}
+
+// onCheckBox1Click 多选框1点击事件
+func (f *MainForm) onCheckBox1Click(sender vcl.IObject) {
+	if f.CheckBox1 != nil {
+		if f.CheckBox1.Checked() {
+			f.AddLog("多选框1被选中: 多选 1")
+			log.Println("多选框1被选中: 多选 1")
+		} else {
+			f.AddLog("多选框1取消选中: 多选 1")
+			log.Println("多选框1取消选中: 多选 1")
+		}
+	}
+}
+
+// onCheckBox2Click 多选框2点击事件
+func (f *MainForm) onCheckBox2Click(sender vcl.IObject) {
+	if f.CheckBox2 != nil {
+		if f.CheckBox2.Checked() {
+			f.AddLog("多选框2被选中: 多选 2")
+			log.Println("多选框2被选中: 多选 2")
+		} else {
+			f.AddLog("多选框2取消选中: 多选 2")
+			log.Println("多选框2取消选中: 多选 2")
+		}
+	}
+}
+
+// onClearEditClick 清空编辑框菜单项点击事件
+func (f *MainForm) onClearEditClick(sender vcl.IObject) {
+	if f.EditInput != nil {
+		f.EditInput.SetText("")
+		f.AddLog("编辑框内容已清空")
+		log.Println("编辑框内容已清空")
+	}
+}
+
+// onGetSelectionsClick 获取选中状态按钮点击事件
+func (f *MainForm) onGetSelectionsClick(sender vcl.IObject) {
+	f.AddLog("=== 获取控件选中状态 ===")
+
+	// 获取单选框状态
+	if f.RadioOption1 != nil {
+		isChecked := f.RadioOption1.Checked()
+		status := "未选中"
+		if isChecked {
+			status = "已选中"
+		}
+		f.AddLog(fmt.Sprintf("单选框1: %s", status))
+		log.Printf("单选框1状态: %s", status)
+	} else {
+		f.AddLog("单选框1: 控件未初始化")
+	}
+
+	if f.RadioOption2 != nil {
+		isChecked := f.RadioOption2.Checked()
+		status := "未选中"
+		if isChecked {
+			status = "已选中"
+		}
+		f.AddLog(fmt.Sprintf("单选框2: %s", status))
+		log.Printf("单选框2状态: %s", status)
+	} else {
+		f.AddLog("单选框2: 控件未初始化")
+	}
+
+	// 获取多选框状态
+	if f.CheckBox1 != nil {
+		isChecked := f.CheckBox1.Checked()
+		status := "未选中"
+		if isChecked {
+			status = "已选中"
+		}
+		f.AddLog(fmt.Sprintf("多选框1: %s", status))
+		log.Printf("多选框1状态: %s", status)
+	} else {
+		f.AddLog("多选框1: 控件未初始化")
+	}
+
+	if f.CheckBox2 != nil {
+		isChecked := f.CheckBox2.Checked()
+		status := "未选中"
+		if isChecked {
+			status = "已选中"
+		}
+		f.AddLog(fmt.Sprintf("多选框2: %s", status))
+		log.Printf("多选框2状态: %s", status)
+	} else {
+		f.AddLog("多选框2: 控件未初始化")
+	}
+
+	f.AddLog("=== 选中状态获取完成 ===")
+	f.UpdateStatus("已获取所有控件选中状态")
+}
+
+// onResizeColumnsClick 调整列宽按钮事件
+func (f *MainForm) onResizeColumnsClick(sender vcl.IObject) {
+	f.AddLog("=== 表格列宽调整测试开始 ===")
+
+	if f.TableData == nil {
+		f.AddLog("表格组件未初始化")
+		return
+	}
+
+	// 获取当前列数
+	colCount := f.TableData.ColCount()
+	f.AddLog(fmt.Sprintf("当前表格列数: %d", colCount))
+
+	// 检查表格选项，确保列宽调整已启用
+	options := f.TableData.Options()
+	isColSizingEnabled := (options & types.TGridOptions(types.GoColSizing)) != 0
+	isThumbTrackingEnabled := (options & types.TGridOptions(types.GoThumbTracking)) != 0
+
+	f.AddLog(fmt.Sprintf("列宽调整选项状态: GoColSizing=%v, GoThumbTracking=%v", isColSizingEnabled, isThumbTrackingEnabled))
+
+	// 如果列宽调整未启用，重新设置表格选项
+	if !isColSizingEnabled || !isThumbTrackingEnabled {
+		f.AddLog("重新启用列宽调整选项...")
+		newOptions := types.TGridOptions(0)
+		newOptions = newOptions | types.TGridOptions(types.GoRowSelect) |
+			types.TGridOptions(types.GoColSizing) |
+			types.TGridOptions(types.GoThumbTracking) |
+			types.TGridOptions(types.GoColMoving) |
+			types.TGridOptions(types.GoTabs) |
+			types.TGridOptions(types.GoRowMoving) |
+			types.TGridOptions(types.GoDrawFocusSelected)
+		f.TableData.SetOptions(newOptions)
+		f.AddLog(fmt.Sprintf("表格选项已重新设置: %v", newOptions))
+	}
+
+	// 确保固定列设置为0，允许调整所有列
+	f.TableData.SetFixedCols(0)
+	f.AddLog("固定列数已设置为0，允许调整所有列")
+
+	// 设置每列的宽度为不同值，以便测试手动调整
+	for i := int32(0); i < colCount; i++ {
+		newWidth := int32(80 + i*30) // 每列宽度递增
+		f.TableData.SetColWidths(i, newWidth)
+		f.AddLog(fmt.Sprintf("设置第%d列宽度为: %d", i+1, newWidth))
+	}
+
+	// 强制刷新表格显示
+	f.TableData.Invalidate()
+	f.AddLog("表格显示已刷新")
+
+	// 输出最终列宽信息
+	var finalColWidths []int32
+	for i := int32(0); i < colCount; i++ {
+		width := f.TableData.ColWidths(i)
+		finalColWidths = append(finalColWidths, width)
+	}
+	f.AddLog(fmt.Sprintf("最终列宽: %v", finalColWidths))
+
+	f.AddLog("表格列宽已调整，请尝试手动拖动列边界调整宽度")
+	f.AddLog("提示：将鼠标移动到列边界处，当光标变为双向箭头时拖动调整宽度")
+	f.AddLog("=== 表格列宽调整测试结束 ===")
+}
+
+// onConcurrentClick 多线程操作按钮事件
+func (f *MainForm) onConcurrentClick(sender vcl.IObject) {
+	if f.ConcurrentManager == nil {
+		f.AddLog("并发管理器未初始化")
+		return
+	}
+
+	// 获取用户输入的参数
+	threadCount := int(f.EditThreadCount.Value())
+	taskCount := int(f.EditTaskCount.Value())
+
+	f.AddLog("=== 多线程操作测试开始 ===")
+	f.AddLog(fmt.Sprintf("配置参数 - 线程数量: %d, 任务数量: %d", threadCount, taskCount))
+
+	// 1. 测试HTTP并发任务
+	f.AddLog("1. 测试HTTP并发任务...")
+
+	// 使用goroutine异步执行，避免阻塞UI线程
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("HTTP并发任务异常: %v", r))
+			}
+		}()
+
+		if err := f.ConcurrentManager.RunConcurrentTasks("http", taskCount); err != nil {
+			f.AddLog(fmt.Sprintf("HTTP并发任务失败: %v", err))
+		} else {
+			f.AddLog("HTTP并发任务执行完成")
+		}
+	}()
+
+	// 2. 测试计算并发任务
+	f.AddLog("2. 测试计算并发任务...")
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("计算并发任务异常: %v", r))
+			}
+		}()
+
+		if err := f.ConcurrentManager.RunConcurrentTasks("compute", taskCount); err != nil {
+			f.AddLog(fmt.Sprintf("计算并发任务失败: %v", err))
+		} else {
+			f.AddLog("计算并发任务执行完成")
+		}
+	}()
+
+	// 3. 测试I/O并发任务
+	f.AddLog("3. 测试I/O并发任务...")
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("I/O并发任务异常: %v", r))
+			}
+		}()
+
+		if err := f.ConcurrentManager.RunConcurrentTasks("io", taskCount); err != nil {
+			f.AddLog(fmt.Sprintf("I/O并发任务失败: %v", err))
+		} else {
+			f.AddLog("I/O并发任务执行完成")
+		}
+	}()
+
+	// 4. 测试混合并发任务
+	f.AddLog("4. 测试混合并发任务...")
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("混合并发任务异常: %v", r))
+			}
+		}()
+
+		if err := f.ConcurrentManager.RunConcurrentTasks("mixed", taskCount); err != nil {
+			f.AddLog(fmt.Sprintf("混合并发任务失败: %v", err))
+		} else {
+			f.AddLog("混合并发任务执行完成")
+		}
+
+		// 最后更新状态和表格显示
+		f.UpdateStatus("多线程操作测试完成")
+		f.AddLog("=== 多线程操作测试结束 ===")
+		f.AddLog("多线程测试完毕")
+	}()
+
+	// 安全地更新表格状态（使用正确的参数顺序：列在前，行在后）
+	if f.TableData != nil && int(f.TableData.RowCount()) > 5 && int(f.TableData.ColCount()) > 1 {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("更新表格状态时发生异常: %v", r)
+			}
+		}()
+		f.TableData.SetCells(1, 5, "完成")
+		log.Printf("表格状态已更新: (列=1, 行=5) = '完成'")
+	} else {
+		log.Printf("表格尺寸不足以更新状态，表格尺寸: %dx%d",
+			func() int32 { defer func() {}(); return f.TableData.RowCount() }(),
+			func() int32 { defer func() {}(); return f.TableData.ColCount() }())
+	}
+
+	log.Println("多线程操作测试完成")
+}
+
 // UpdateStatus 更新状态栏显示
 func (f *MainForm) UpdateStatus(status string) {
-	if f.StatusBar != nil && f.StatusBar.Panels().Count() > 0 {
-		f.StatusBar.Panels().Items(0).SetText(fmt.Sprintf("[%s] %s",
-			time.Now().Format("15:04:05"), status))
-	}
-	f.lastUpdate = time.Now()
+	// if f.StatusBar != nil && f.StatusBar.Panels().Count() > 0 {
+	// 	f.StatusBar.Panels().Items(0).SetText(fmt.Sprintf("[%s] %s",
+	// 		time.Now().Format("15:04:05"), status))
+	// }
+	// f.lastUpdate = time.Now()
 
-	log.Printf("状态更新: %s", status)
+	// log.Printf("状态更新: %s", status)
 }
 
 // GetCurrentData 获取当前显示的数据
@@ -663,7 +1355,7 @@ func (f *MainForm) GetTableData() [][]string {
 		log.Printf("表格行数为0，返回空数据")
 		return [][]string{}
 	}
-	
+
 	if colCount <= 0 {
 		log.Printf("表格列数为0，返回空数据")
 		return [][]string{}
@@ -674,27 +1366,27 @@ func (f *MainForm) GetTableData() [][]string {
 		rowCount = 100
 		log.Printf("表格行数超过限制，已截断为100行")
 	}
-	
+
 	if colCount > 50 {
 		colCount = 50
 		log.Printf("表格列数超过限制，已截断为50列")
 	}
 
 	var data [][]string
-	
+
 	// 使用安全的索引遍历，添加详细的调试信息
 	for r := 0; r < rowCount; r++ {
 		var row []string
-		
+
 		log.Printf("处理第%d行数据", r)
-		
+
 		// 确保行索引有效
 		if r >= 0 && r < int(f.TableData.RowCount()) {
 			for c := 0; c < colCount; c++ {
 				// 确保列索引有效
 				if c >= 0 && c < int(f.TableData.ColCount()) {
 					cellValue := ""
-					
+
 					// 安全地调用Cells方法
 					defer func() {
 						if r := recover(); r != nil {
@@ -702,23 +1394,23 @@ func (f *MainForm) GetTableData() [][]string {
 							cellValue = ""
 						}
 					}()
-					
+
 					// 使用正确的参数顺序：列, 行
 					// StringGrid的Cells方法是列在前，行在后
 					colParam := int32(c)
 					rowParam := int32(r)
-					
+
 					log.Printf("获取单元格 (列=%d, 行=%d)", colParam, rowParam)
-					
+
 					cellValue = f.TableData.Cells(colParam, rowParam)
-					
+
 					// 确保返回值不是nil或空指针
 					if cellValue == "" {
 						cellValue = ""
 					}
-					
+
 					log.Printf("单元格值: '%s'", cellValue)
-					
+
 					row = append(row, cellValue)
 				} else {
 					log.Printf("跳过无效列索引: %d", c)
@@ -742,7 +1434,7 @@ func (f *MainForm) GetTableData() [][]string {
 	for i, row := range data {
 		log.Printf("第%d行: %v", i, row)
 	}
-	
+
 	return data
 }
 
@@ -752,7 +1444,7 @@ func (f *MainForm) SetTableData(data [][]string) {
 		log.Printf("警告: 表格组件为nil，无法设置数据")
 		return
 	}
-	
+
 	if len(data) == 0 {
 		log.Printf("数据为空，无法设置表格")
 		return
@@ -763,7 +1455,7 @@ func (f *MainForm) SetTableData(data [][]string) {
 		log.Printf("数据为空数组，无法设置表格")
 		return
 	}
-	
+
 	if len(data[0]) == 0 {
 		log.Printf("第一行数据为空，无法设置表格")
 		return
@@ -772,16 +1464,16 @@ func (f *MainForm) SetTableData(data [][]string) {
 	// 设置表格尺寸（添加最大值限制）
 	rowCount := int32(len(data))
 	colCount := int32(len(data[0]))
-	
+
 	// 添加Excel限制检查
 	maxRows := int32(100)
 	maxCols := int32(50)
-	
+
 	if rowCount > maxRows {
 		rowCount = maxRows
 		log.Printf("行数超过限制，截断为%d行", maxRows)
 	}
-	
+
 	if colCount > maxCols {
 		colCount = maxCols
 		log.Printf("列数超过限制，截断为%d列", maxCols)
@@ -794,14 +1486,14 @@ func (f *MainForm) SetTableData(data [][]string) {
 	}
 
 	log.Printf("设置表格尺寸: %dx%d", rowCount, colCount)
-	
+
 	// 使用安全的方式设置表格尺寸
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("设置表格尺寸时发生panic: %v", r)
 		}
 	}()
-	
+
 	f.TableData.SetRowCount(rowCount)
 	f.TableData.SetColCount(colCount)
 
@@ -812,33 +1504,33 @@ func (f *MainForm) SetTableData(data [][]string) {
 			log.Printf("跳过无效行索引: %d", r)
 			continue
 		}
-		
+
 		for c, cell := range row {
 			// 确保列索引有效
 			if c < 0 || c >= int(colCount) {
 				log.Printf("跳过无效列索引: %d", c)
 				continue
 			}
-			
+
 			// 确保单元格值不是nil
 			cellValue := ""
 			if cell != "" {
 				cellValue = cell
 			}
-			
+
 			// 使用安全的参数顺序：列在前，行在后
-			colParam := int32(c)  // 列索引
-			rowParam := int32(r)  // 行索引
-			
+			colParam := int32(c) // 列索引
+			rowParam := int32(r) // 行索引
+
 			log.Printf("设置表格单元格 (列=%d, 行=%d) = '%s'", colParam, rowParam, cellValue)
-			
+
 			// 使用defer捕获可能的panic
 			defer func() {
 				if r := recover(); r != nil {
 					log.Printf("设置表格数据时发生异常: 行=%d, 列=%d, 值='%s', 错误=%v", r, c, cellValue, r)
 				}
 			}()
-			
+
 			f.TableData.SetCells(colParam, rowParam, cellValue)
 		}
 	}
@@ -849,12 +1541,282 @@ func (f *MainForm) SetTableData(data [][]string) {
 // AddLog 添加日志信息
 func (f *MainForm) AddLog(logText string) {
 	currentText := f.GetCurrentData()
-	newText := currentText + "\n\n" + fmt.Sprintf("[%s] %s",
-		time.Now().Format("15:04:05"), logText)
+	newText := currentText + "\n" + logText
 	f.SetCurrentData(newText)
+
+	// 自动滚动到底部，显示最新内容
+	if f.EditInput != nil {
+		// 计算文本总长度
+		textLength := len(newText)
+		if textLength > 0 {
+			// 设置选择起始位置为文本末尾，实现自动滚动到底部
+			f.EditInput.SetSelStart(int32(textLength))
+			f.EditInput.SetSelLength(0)
+		}
+	}
 
 	log.Printf("UI日志: %s", logText)
 }
 
+// applyUIStyles 应用现代化UI样式
+func (f *MainForm) applyUIStyles() {
+	// 设置主窗口样式
+	f.applyWindowStyles()
+
+	// 应用面板样式
+	f.applyPanelStyles()
+
+	// 应用按钮样式
+	f.applyButtonStyles()
+
+	// 应用输入组件样式
+	f.applyInputStyles()
+
+	// 应用表格样式
+	f.applyTableStyles()
+
+	// 应用状态栏样式
+	f.applyStatusBarStyles()
+}
+
+// applyWindowStyles 应用窗口样式
+func (f *MainForm) applyWindowStyles() {
+	// 设置窗口标题和图标
+	f.TForm.SetCaption("GO VCL 多功能演示程序 v1.0")
+
+	// 设置窗口初始位置
+	f.TForm.SetPosition(types.PoScreenCenter)
+
+	// 设置窗口最大化最小化按钮可用
+	f.TForm.SetBorderIcons(types.BiSystemMenu | types.BiMinimize | types.BiMaximize)
+}
+
+// applyPanelStyles 应用面板样式
+func (f *MainForm) applyPanelStyles() {
+	// 主面板 - 基本样式
+	if f.PanelMain != nil {
+		f.PanelMain.SetParentBackground(false)
+	}
+
+	// 按钮面板 - 添加边框效果
+	if f.PanelButtons != nil {
+		f.PanelButtons.SetParentBackground(false)
+		f.PanelButtons.SetBevelOuter(types.BvLowered)
+	}
+
+	// 状态面板 - 基本样式
+	if f.PanelStatus != nil {
+		f.PanelStatus.SetParentBackground(false)
+	}
+
+	// 表格面板 - 基本样式
+	if f.PanelTable != nil {
+		f.PanelTable.SetParentBackground(false)
+		f.PanelTable.SetBevelOuter(types.BvRaised)
+	}
+}
+
+// applyButtonStyles 应用按钮样式
+func (f *MainForm) applyButtonStyles() {
+	buttons := []*vcl.TButton{
+		f.BtnImportExcel, f.BtnExcel, f.BtnJSON,
+		f.BtnHTTP, f.BtnDatabase, f.BtnConcurrent, f.BtnClose,
+	}
+
+	for _, button := range buttons {
+		if button != nil {
+			// 设置按钮字体样式
+			font := button.Font()
+			font.SetSize(10)
+			font.SetStyle(types.TFontStyles(types.FsBold))
+
+			// 设置按钮悬停效果
+			button.SetParentFont(false)
+		}
+	}
+}
+
+// applyInputStyles 应用输入组件样式
+func (f *MainForm) applyInputStyles() {
+	// 美化信息标签
+	if f.LabelInfo != nil {
+		font := f.LabelInfo.Font()
+		font.SetSize(16)
+		font.SetStyle(types.TFontStyles(types.FsBold | types.FsItalic))
+		f.LabelInfo.SetFont(font)
+		f.LabelInfo.SetTransparent(false)
+	}
+
+	// 美化线程数量和任务数量标签
+	labels := []*vcl.TLabel{f.LabelThread, f.LabelTask}
+	for _, label := range labels {
+		if label != nil {
+			font := label.Font()
+			font.SetSize(10)
+			font.SetStyle(types.TFontStyles(types.FsBold))
+			label.SetFont(font)
+		}
+	}
+
+	// 美化SpinEdit组件
+	spins := []*vcl.TSpinEdit{f.EditThreadCount, f.EditTaskCount}
+	for _, spin := range spins {
+		if spin != nil {
+			font := spin.Font()
+			font.SetSize(10)
+			spin.SetFont(font)
+			spin.SetParentFont(false)
+		}
+	}
+
+	// 美化输入编辑框
+	if f.EditInput != nil {
+		font := f.EditInput.Font()
+		font.SetSize(10)
+		font.SetStyle(types.TFontStyles(types.FsNormal))
+		f.EditInput.SetFont(font)
+		f.EditInput.SetReadOnly(true)
+		// 设置滚动条样式
+		f.EditInput.SetScrollBars(types.SsBoth)
+	}
+}
+
+// applyTableStyles 应用表格样式
+func (f *MainForm) applyTableStyles() {
+	if f.TableData != nil {
+		// 设置表格字体
+		font := f.TableData.Font()
+		font.SetSize(10)
+		font.SetStyle(types.TFontStyles(types.FsNormal))
+		f.TableData.SetFont(font)
+
+		// 设置标题行样式
+		f.TableData.SetFixedRows(1)
+		f.TableData.SetFixedCols(0) // 修改为0，允许调整所有列
+
+		// 设置网格线，保持列宽调整选项
+		// 使用正确的Options设置方式，确保包含列宽调整选项
+		gridOptions := types.TGridOptions(0)
+		gridOptions = gridOptions | types.TGridOptions(types.GoFixedVertLine) |
+			types.TGridOptions(types.GoFixedHorzLine) |
+			types.TGridOptions(types.GoVertLine) |
+			types.TGridOptions(types.GoHorzLine) |
+			types.TGridOptions(types.GoRangeSelect) |
+			types.TGridOptions(types.GoDrawFocusSelected) |
+			types.TGridOptions(types.GoRowSizing) |
+			types.TGridOptions(types.GoColSizing) | // 列大小调整 - 这是关键选项
+			types.TGridOptions(types.GoRowMoving) |
+			types.TGridOptions(types.GoColMoving) |
+			types.TGridOptions(types.GoEditing) |
+			types.TGridOptions(types.GoTabs) |
+			types.TGridOptions(types.GoRowSelect) |
+			types.TGridOptions(types.GoAlwaysShowEditor) |
+			types.TGridOptions(types.GoThumbTracking) // 拖动跟踪 - 这是关键选项
+
+		f.TableData.SetOptions(gridOptions)
+
+		// 确保表格允许列宽调整
+		f.TableData.SetDefaultColWidth(100)
+
+		// 再次设置固定行列，确保设置生效
+		f.TableData.SetFixedRows(1)
+		f.TableData.SetFixedCols(0)
+
+		log.Printf("表格选项已设置，包含列宽调整选项")
+
+		// 强制刷新表格显示
+		f.TableData.Invalidate()
+	}
+}
+
+// applyStatusBarStyles 应用状态栏样式
+func (f *MainForm) applyStatusBarStyles() {
+	if f.StatusBar != nil {
+		// 设置状态栏面板样式
+		if f.StatusBar.Panels().Count() > 0 {
+			panel := f.StatusBar.Panels().Items(0)
+			panel.SetText("就绪 - 版本 1.0 ")
+		}
+	}
+}
+
+// autoResizeColumns 自动调整表格列宽以适应内容
+func (f *MainForm) autoResizeColumns() {
+	if f.TableData == nil {
+		log.Printf("表格组件未初始化，无法自动调整列宽")
+		return
+	}
+
+	// 检查表格选项，确保列宽调整已启用
+	options := f.TableData.Options()
+	isColSizingEnabled := (options & types.TGridOptions(types.GoColSizing)) != 0
+
+	if !isColSizingEnabled {
+		log.Printf("列宽调整选项未启用，重新设置表格选项...")
+		// 重新设置表格选项，确保列宽调整可用
+		gridOptions := types.TGridOptions(0)
+		gridOptions = gridOptions | types.TGridOptions(types.GoFixedVertLine) |
+			types.TGridOptions(types.GoFixedHorzLine) |
+			types.TGridOptions(types.GoVertLine) |
+			types.TGridOptions(types.GoHorzLine) |
+			types.TGridOptions(types.GoRangeSelect) |
+			types.TGridOptions(types.GoDrawFocusSelected) |
+			types.TGridOptions(types.GoRowSizing) |
+			types.TGridOptions(types.GoColSizing) | // 列大小调整 - 这是关键选项
+			types.TGridOptions(types.GoRowMoving) |
+			types.TGridOptions(types.GoColMoving) |
+			types.TGridOptions(types.GoEditing) |
+			types.TGridOptions(types.GoTabs) |
+			types.TGridOptions(types.GoRowSelect) |
+			types.TGridOptions(types.GoAlwaysShowEditor) |
+			types.TGridOptions(types.GoThumbTracking) // 拖动跟踪 - 这是关键选项
+		f.TableData.SetOptions(gridOptions)
+		log.Printf("表格选项已重新设置，包含列宽调整选项")
+	}
+
+	// 获取表格的行数和列数
+	rowCount := f.TableData.RowCount()
+	colCount := f.TableData.ColCount()
+	log.Printf("开始自动调整列宽，表格大小: %d行 x %d列", rowCount, colCount)
+
+	// 确保固定列设置为0，允许调整所有列
+	f.TableData.SetFixedCols(0)
+
+	// 遍历每一列，计算最佳宽度
+	for col := int32(0); col < colCount; col++ {
+		maxWidth := 50 // 设置最小宽度为50像素
+
+		// 遍历每一行，计算该列中每个单元格的宽度
+		for row := int32(0); row < rowCount; row++ {
+			// 获取单元格文本
+			cellText := f.TableData.Cells(col, row)
+
+			// 计算文本宽度（简单估算，每个字符约8像素宽度）
+			textWidth := len(cellText)*8 + 20 // 加20像素作为边距
+
+			// 更新最大宽度
+			if textWidth > maxWidth {
+				maxWidth = textWidth
+			}
+		}
+
+		// 设置列宽，但不超过300像素
+		if maxWidth > 300 {
+			maxWidth = 300
+		}
+
+		// 设置列宽
+		f.TableData.SetColWidths(col, int32(maxWidth))
+		log.Printf("第%d列宽度已设置为: %d", col+1, maxWidth)
+	}
+
+	// 强制刷新表格显示
+	f.TableData.Invalidate()
+	log.Printf("表格列宽自动调整完成，显示已刷新")
+}
+
 // 确保MainForm实现UIInterface接口
+// 这行代码确保MainForm结构体完全实现了UIInterface接口中定义的所有方法
+// 如果MainForm没有实现UIInterface接口的所有方法，编译器将在此处报错
+// 这是一种编译时检查机制，确保接口实现的完整性
 var _ interfaces.UIInterface = (*MainForm)(nil)

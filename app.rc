@@ -1,0 +1,29 @@
+1 MANIFEST "app.manifest"
+MAINICON ICON "rgb.ico"
+
+1 VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEOS 0x4
+FILETYPE 0x1
+
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+			VALUE "CompanyName", "GO_VCL Project"
+			VALUE "FileDescription", "GO_VCL Windows GUI Application"
+			VALUE "FileVersion", "1.0.0.0"
+			VALUE "InternalName", "windows-gui-app"
+			VALUE "LegalCopyright", "Copyright (C) GO_VCL Project. All Rights Reserved."
+			VALUE "OriginalFilename", "windows-gui-app.exe"
+			VALUE "ProductName", "GO_VCL Application"
+			VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+            VALUE "Translation", 0x0409, 0x04B0
+    END
+END

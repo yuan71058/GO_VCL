@@ -1,21 +1,11 @@
 // managers/http_manager.go - HTTP操作管理器
-// 功能描述: 提供HTTP请求的发送、文件下载和响应处理功能
-// 主要功能:
-//   - GET请求：发送HTTP GET请求并获取响应
-//   - POST请求：发送HTTP POST请求并提交数据
-//   - 文件下载：下载文件到指定路径
-//   - 响应处理：解析HTTP响应状态和内容
-//   - 错误处理：提供详细的网络错误和HTTP错误信息
-// 作者: GO_VCL开发团队
-// 创建时间: 2025-11-12
-
+// 该文件实现了HTTP操作管理器，提供HTTP请求、文件下载、API测试等功能
+// 支持GET、POST等HTTP方法，并提供了丰富的辅助函数用于处理HTTP请求和响应
 package managers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -24,30 +14,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-resty/resty/v2"
 	"windows-gui-app/interfaces"
 )
 
 // HTTPManager HTTP操作管理器
-// 负责处理HTTP请求的发送和响应处理，提供UI集成功能
+// 封装了HTTP客户端，提供统一的HTTP操作接口，支持GET、POST请求和文件下载
+// 与UI组件交互，将操作结果展示在用户界面上
 type HTTPManager struct {
-	uiInstance interfaces.UIInterface // UI实例接口，用于显示操作状态和结果
-	client     *http.Client            // HTTP客户端实例
+	uiInstance interfaces.UIInterface // UI实例接口，用于更新界面状态和数据
+	client     *resty.Client          // HTTP客户端实例，用于执行HTTP请求
 }
 
 // NewHTTPManager 创建HTTP管理器实例
+// 初始化HTTP客户端，设置默认超时时间，并关联UI实例
 // 参数:
 //   - ui: UI实例，用于显示操作结果（可以为nil，之后通过SetUIInstance设置）
 //
 // 返回:
 //   - *HTTPManager: HTTP管理器实例
-//
-// 使用示例:
-//   httpManager := managers.NewHTTPManager(mainForm)
 func NewHTTPManager(ui interfaces.UIInterface) *HTTPManager {
-	// 创建自定义HTTP客户端，设置超时时间
-	client := &http.Client{
-		Timeout: 30 * time.Second, // 30秒超时
-	}
+	client := resty.New()
+	// 设置默认超时时间为30秒，避免长时间等待
+	client.SetTimeout(30 * time.Second)
 
 	return &HTTPManager{
 		uiInstance: ui,
@@ -56,414 +45,421 @@ func NewHTTPManager(ui interfaces.UIInterface) *HTTPManager {
 }
 
 // SetUIInstance 设置UI实例
-// 用于在运行时更新UI实例引用
+// 允许在创建管理器后设置UI实例，用于解耦合UI和管理器的创建顺序
 // 参数:
-//   - ui: 新的UI实例
+//   - ui: UI实例接口
 func (hm *HTTPManager) SetUIInstance(ui interfaces.UIInterface) {
 	hm.uiInstance = ui
 }
 
-// GETRequest 发送HTTP GET请求
-// 功能描述:
-//   - 发送HTTP GET请求到指定URL
-//   - 自动处理URL格式验证和编码
-//   - 获取并解析HTTP响应状态码和内容
-//   - 提供详细的错误信息和状态反馈
-//
+// GETRequest 发起HTTP GET请求
+// 使用封装的HTTP客户端发送GET请求，返回原始HTTP响应
 // 参数:
-//   - urlStr: 请求的URL地址（必须包含协议，如http://或https://）
+//   - url: 请求的URL地址
 //
 // 返回:
-//   - string: 响应内容
-//   - int: HTTP状态码
-//   - error: 操作错误，nil表示成功
-//
-// 支持的URL格式:
-//   - "http://example.com/api/users"
-//   - "https://api.example.com/v1/data"
-//   - "http://localhost:8080/status"
-//
-// 可能的错误:
-//   - "URL不能为空": urlStr参数为空
-//   - "URL格式错误": URL格式不合法
-//   - "不支持的协议": 不是http或https协议
-//   - "发送GET请求失败": 网络错误或服务器错误
-//   - "读取响应失败": 响应内容读取错误
-//
-// 使用示例:
-//   content, statusCode, err := httpManager.GETRequest("https://api.example.com/users")
-//   if err != nil {
-//       log.Printf("请求失败: %v", err)
-//   }
-//   log.Printf("状态码: %d, 内容长度: %d", statusCode, len(content))
-func (hm *HTTPManager) GETRequest(urlStr string) (string, int, error) {
-	// 验证URL参数
-	if strings.TrimSpace(urlStr) == "" {
-		return "", 0, fmt.Errorf("URL不能为空")
-	}
-
-	// 验证URL格式
-	parsedURL, err := url.Parse(urlStr)
+//   - *http.Response: HTTP响应对象
+//   - error: 错误信息，nil表示请求成功
+func (hm *HTTPManager) GETRequest(url string) (*http.Response, error) {
+	resp, err := hm.client.R().Get(url)
 	if err != nil {
-		return "", 0, fmt.Errorf("URL格式错误: %v", err)
+		return nil, err
 	}
-
-	// 检查协议
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return "", 0, fmt.Errorf("不支持的协议: %s，只支持http和https", parsedURL.Scheme)
-	}
-
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		hm.uiInstance.UpdateStatus(fmt.Sprintf("正在发送GET请求到: %s", urlStr))
-	}
-
-	log.Printf("发送GET请求: %s", urlStr)
-
-	// 创建HTTP请求
-	req, err := http.NewRequest("GET", urlStr, nil)
-	if err != nil {
-		return "", 0, fmt.Errorf("创建GET请求失败: %v", err)
-	}
-
-	// 设置请求头
-	req.Header.Set("User-Agent", "GO_VCL-HTTP-Client/1.0")
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
-
-	// 发送请求
-	resp, err := hm.client.Do(req)
-	if err != nil {
-		return "", 0, fmt.Errorf("发送GET请求失败: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 读取响应内容
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", resp.StatusCode, fmt.Errorf("读取响应失败: %v", err)
-	}
-
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("GET请求完成，状态码: %d，响应长度: %d字节", resp.StatusCode, len(body))
-		hm.uiInstance.UpdateStatus(statusMsg)
-	}
-
-	// 记录操作日志
-	log.Printf("GET请求成功: %s -> 状态码: %d，响应长度: %d字节", urlStr, resp.StatusCode, len(body))
-	return string(body), resp.StatusCode, nil
+	return resp.RawResponse, nil
 }
 
-// POSTRequest 发送HTTP POST请求
-// 功能描述:
-//   - 发送HTTP POST请求到指定URL
-//   - 支持多种数据格式（JSON、表单、纯文本）
-//   - 自动检测和设置适当的内容类型
-//   - 处理请求超时和响应解析
-//
+// POSTRequest 执行HTTP POST请求
+// 支持多种数据类型，自动处理JSON序列化和表单数据格式
+// 将请求结果展示在UI表格中，并更新状态栏
 // 参数:
-//   - urlStr: 请求的URL地址（必须包含协议）
-//   - data: 要发送的数据（支持字符串、map、slice等类型）
-//   - contentType: 内容类型（可选，如"application/json"，为空则自动检测）
+//   - urlStr: 请求URL
+//   - data: POST数据，支持字符串、map或[]byte
+//   - contentType: 内容类型，如"application/json"
 //
 // 返回:
-//   - string: 响应内容
-//   - int: HTTP状态码
 //   - error: 操作错误，nil表示成功
-//
-// 支持的数据类型:
-//   - 字符串: 直接作为请求体发送
-//   - map[string]interface{}: 转换为JSON格式发送
-//   - []interface{}: 转换为JSON数组发送
-//   - 其他类型: 转换为字符串发送
-//
-// 自动内容类型检测:
-//   - JSON数据: "application/json"
-//   - 纯文本: "text/plain"
-//   - 表单数据: "application/x-www-form-urlencoded"
-//
-// 可能的错误:
-//   - "URL不能为空": urlStr参数为空
-//   - "数据不能为空": data参数为空
-//   - "URL格式错误": URL格式不合法
-//   - "不支持的协议": 不是http或https协议
-//   - "编码数据失败": 数据序列化错误
-//   - "发送POST请求失败": 网络错误或服务器错误
-//
-// 使用示例:
-//   // 发送JSON数据
-//   data := map[string]interface{}{"name": "张三", "age": 25}
-//   content, statusCode, err := httpManager.POSTRequest("https://api.example.com/users", data, "")
-//   
-//   // 发送纯文本数据
-//   content, statusCode, err := httpManager.POSTRequest("https://api.example.com/text", "Hello World", "")
-func (hm *HTTPManager) POSTRequest(urlStr string, data interface{}, contentType string) (string, int, error) {
-	// 验证参数
+func (hm *HTTPManager) POSTRequest(urlStr string, data interface{}, contentType string) error {
 	if strings.TrimSpace(urlStr) == "" {
-		return "", 0, fmt.Errorf("URL不能为空")
+		return fmt.Errorf("URL不能为空")
 	}
 
-	if data == nil {
-		return "", 0, fmt.Errorf("数据不能为空")
+	// 验证URL格式，确保URL符合HTTP规范
+	if _, err := url.ParseRequestURI(urlStr); err != nil {
+		return fmt.Errorf("URL格式错误: %v", err)
 	}
 
-	// 验证URL格式
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return "", 0, fmt.Errorf("URL格式错误: %v", err)
-	}
+	// 更新UI状态，提示用户正在发送请求
+	hm.uiInstance.UpdateStatus("正在发送POST请求...")
 
-	// 检查协议
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return "", 0, fmt.Errorf("不支持的协议: %s，只支持http和https", parsedURL.Scheme)
-	}
+	// 设置POST数据 - 准备请求体
+	var reqBody interface{}
+	var useFormData bool
 
-	// 编码请求数据
-	var bodyData []byte
-	var actualContentType string
-
-	// 根据数据类型自动选择编码方式
 	switch v := data.(type) {
 	case string:
-		bodyData = []byte(v)
-		if contentType == "" {
-			actualContentType = "text/plain"
-		} else {
-			actualContentType = contentType
-		}
-	case map[string]interface{}, []interface{}:
-		// JSON编码
-		jsonData, err := json.Marshal(v)
+		reqBody = v
+	case map[string]string:
+		reqBody = v
+		useFormData = true // map[string]string使用表单数据格式
+	case map[string]interface{}:
+		jsonStr, err := convertToJSONString(v)
 		if err != nil {
-			return "", 0, fmt.Errorf("编码数据失败: %v", err)
+			return fmt.Errorf("JSON序列化失败: %v", err)
 		}
-		bodyData = jsonData
-		if contentType == "" {
-			actualContentType = "application/json"
-		} else {
-			actualContentType = contentType
-		}
+		reqBody = jsonStr
+	case []byte:
+		reqBody = v
 	default:
-		// 转换为字符串
-		bodyData = []byte(fmt.Sprintf("%v", v))
-		if contentType == "" {
-			actualContentType = "text/plain"
-		} else {
-			actualContentType = contentType
-		}
+		return fmt.Errorf("不支持的数据类型: %T", v)
 	}
-
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		hm.uiInstance.UpdateStatus(fmt.Sprintf("正在发送POST请求到: %s", urlStr))
-	}
-
-	log.Printf("发送POST请求: %s，数据长度: %d字节，内容类型: %s", urlStr, len(bodyData), actualContentType)
-
-	// 创建HTTP请求
-	req, err := http.NewRequest("POST", urlStr, bytes.NewBuffer(bodyData))
-	if err != nil {
-		return "", 0, fmt.Errorf("创建POST请求失败: %v", err)
-	}
-
-	// 设置请求头
-	req.Header.Set("User-Agent", "GO_VCL-HTTP-Client/1.0")
-	req.Header.Set("Content-Type", actualContentType)
-	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(bodyData)))
 
 	// 发送请求
-	resp, err := hm.client.Do(req)
+	var resp *resty.Response
+	var err error
+
+	if useFormData {
+		// 使用表单数据格式
+		resp, err = hm.client.R().
+			SetFormData(data.(map[string]string)).
+			Post(urlStr)
+	} else {
+		// 使用普通请求体
+		resp, err = hm.client.R().
+			SetHeader("Content-Type", func() string {
+				if contentType != "" {
+					return contentType
+				}
+				// 根据数据类型设置默认的内容类型
+				if str, ok := data.(string); ok && isJSON(str) {
+					return "application/json"
+				}
+				return "application/x-www-form-urlencoded"
+			}()).
+			SetBody(reqBody).
+			Post(urlStr)
+	}
 	if err != nil {
-		return "", 0, fmt.Errorf("发送POST请求失败: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 读取响应内容
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", resp.StatusCode, fmt.Errorf("读取响应失败: %v", err)
+		return fmt.Errorf("POST请求失败: %v", err)
 	}
 
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("POST请求完成，状态码: %d，响应长度: %d字节", resp.StatusCode, len(body))
-		hm.uiInstance.UpdateStatus(statusMsg)
+	// 检查响应状态
+	if resp.StatusCode() != http.StatusOK && resp.StatusCode() != http.StatusCreated {
+		return fmt.Errorf("服务器响应错误，状态码: %d", resp.StatusCode())
 	}
 
-	// 记录操作日志
-	log.Printf("POST请求成功: %s -> 状态码: %d，响应长度: %d字节", urlStr, resp.StatusCode, len(body))
-	return string(body), resp.StatusCode, nil
+	// 获取响应内容
+	body := resp.String()
+
+	// 准备显示数据
+	var displayData [][]string
+	displayData = append(displayData, []string{"字段", "值"})
+	displayData = append(displayData, []string{"状态码", fmt.Sprintf("%d", resp.StatusCode())})
+	displayData = append(displayData, []string{"URL", urlStr})
+	displayData = append(displayData, []string{"请求时间", time.Now().Format("2006-01-02 15:04:05")})
+	displayData = append(displayData, []string{"请求数据大小", fmt.Sprintf("%d字节", getDataSize(data))})
+	displayData = append(displayData, []string{"响应大小", fmt.Sprintf("%d字节", len(body))})
+
+	// 添加内容类型信息
+	if contentType != "" {
+		displayData = append(displayData, []string{"请求类型", contentType})
+	}
+
+	// 响应内容预览
+	if len(body) > 0 {
+		if isJSONResponse(body) {
+			displayData = append(displayData, []string{"响应类型", "JSON"})
+		} else if isHTMLResponse(body) {
+			displayData = append(displayData, []string{"响应类型", "HTML"})
+		} else {
+			displayData = append(displayData, []string{"响应类型", "纯文本"})
+		}
+		displayData = append(displayData, []string{"响应内容", truncateString(body, 200)})
+	}
+
+	// 更新UI表格显示
+	hm.uiInstance.SetTableData(displayData)
+
+	// 更新状态
+	hm.uiInstance.UpdateStatus(fmt.Sprintf("POST请求成功，状态码: %d", resp.StatusCode()))
+
+	log.Printf("成功执行POST请求: %s，状态码: %d", urlStr, resp.StatusCode())
+	return nil
 }
 
-// DownloadFile 下载文件到指定路径
-// 功能描述:
-//   - 从指定URL下载文件
-//   - 支持大文件分块下载和进度显示
-//   - 自动创建输出目录
-//   - 提供下载进度和速度信息
-//
+// DownloadFile 下载文件
+// 从指定URL下载文件并保存到本地路径，自动创建必要的目录结构
+// 将下载结果展示在UI表格中，并更新状态栏
 // 参数:
-//   - urlStr: 要下载的文件的URL地址
-//   - filePath: 本地保存文件路径（包含文件名）
+//   - urlStr: 下载URL
+//   - filePath: 本地保存路径
 //
 // 返回:
 //   - error: 操作错误，nil表示成功
-//
-// 特殊功能:
-//   - 自动创建输出目录
-//   - 显示下载进度（通过UI状态更新）
-//   - 支持断点续传（如果服务器支持）
-//   - 下载完成后验证文件完整性
-//
-// 可能的错误:
-//   - "下载URL不能为空": urlStr参数为空
-//   - "文件路径不能为空": filePath参数为空
-//   - "URL格式错误": URL格式不合法
-//   - "不支持的协议": 不是http或https协议
-//   - "创建目录失败": 输出目录创建错误
-//   - "发送下载请求失败": 网络错误或服务器错误
-//   - "创建文件失败": 本地文件创建错误
-//   - "下载文件失败": 文件写入错误
-//
-// 使用示例:
-//   err := httpManager.DownloadFile("https://example.com/file.pdf", "C:\\downloads\\file.pdf")
-//   if err != nil {
-//       log.Printf("下载失败: %v", err)
-//   }
 func (hm *HTTPManager) DownloadFile(urlStr, filePath string) error {
-	// 验证参数
 	if strings.TrimSpace(urlStr) == "" {
 		return fmt.Errorf("下载URL不能为空")
 	}
 
-	if strings.TrimSpace(filePath) == "" {
-		return fmt.Errorf("文件路径不能为空")
-	}
-
-	// 验证URL格式
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
+	// 验证URL格式，确保URL符合HTTP规范
+	if _, err := url.ParseRequestURI(urlStr); err != nil {
 		return fmt.Errorf("URL格式错误: %v", err)
 	}
 
-	// 检查协议
-	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return fmt.Errorf("不支持的协议: %s，只支持http和https", parsedURL.Scheme)
-	}
+	// 更新UI状态，提示用户正在下载文件
+	hm.uiInstance.UpdateStatus("正在下载文件...")
 
-	// 创建输出目录
-	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %v", err)
-	}
-
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		hm.uiInstance.UpdateStatus(fmt.Sprintf("正在下载文件: %s", filepath.Base(filePath)))
-	}
-
-	log.Printf("开始下载文件: %s -> %s", urlStr, filePath)
-
-	// 创建HTTP请求
-	req, err := http.NewRequest("GET", urlStr, nil)
+	// 发送GET请求下载文件
+	resp, err := hm.client.R().Get(urlStr)
 	if err != nil {
-		return fmt.Errorf("创建下载请求失败: %v", err)
+		return fmt.Errorf("下载文件失败: %v", err)
 	}
-
-	// 设置请求头
-	req.Header.Set("User-Agent", "GO_VCL-HTTP-Client/1.0")
-
-	// 发送请求
-	resp, err := hm.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("发送下载请求失败: %v", err)
-	}
-	defer resp.Body.Close()
 
 	// 检查响应状态
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("下载失败，HTTP状态码: %d", resp.StatusCode)
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("下载请求失败，状态码: %d", resp.StatusCode())
 	}
 
-	// 获取文件大小
-	contentLength := resp.ContentLength
-	log.Printf("文件大小: %d字节", contentLength)
+	// 获取文件内容
+	fileData := resp.Body()
 
-	// 创建输出文件
-	out, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("创建文件失败: %v", err)
-	}
-	defer out.Close()
-
-	// 复制数据（带进度更新）
-	var written int64
-	if contentLength > 0 {
-		// 大文件分块下载
-		buf := make([]byte, 32*1024) // 32KB缓冲区
-		for {
-			nr, err := resp.Body.Read(buf)
-			if nr > 0 {
-				nw, err := out.Write(buf[:nr])
-				if err != nil {
-					return fmt.Errorf("写入文件失败: %v", err)
-				}
-				written += int64(nw)
-
-				// 更新进度（每下载1MB更新一次）
-				if written%(1024*1024) == 0 && hm.uiInstance != nil {
-					progress := float64(written) / float64(contentLength) * 100
-					hm.uiInstance.UpdateStatus(fmt.Sprintf("下载进度: %.1f%% (%d/%d KB)", 
-						progress, written/1024, contentLength/1024))
-				}
-			}
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				return fmt.Errorf("下载文件失败: %v", err)
-			}
-		}
-	} else {
-		// 小文件直接复制
-		written, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return fmt.Errorf("下载文件失败: %v", err)
-		}
+	// 保存文件
+	if err := hm.saveFile(filePath, fileData); err != nil {
+		return fmt.Errorf("保存文件失败: %v", err)
 	}
 
-	// 验证文件大小
-	fileInfo, err := out.Stat()
-	if err != nil {
-		return fmt.Errorf("获取文件信息失败: %v", err)
+	// 更新UI
+	displayData := [][]string{
+		[]string{"字段", "值"},
+		[]string{"下载URL", urlStr},
+		[]string{"保存路径", filePath},
+		[]string{"文件大小", fmt.Sprintf("%.2fKB", float64(len(fileData))/1024)},
+		[]string{"下载时间", time.Now().Format("2006-01-02 15:04:05")},
 	}
+	hm.uiInstance.SetTableData(displayData)
 
-	if contentLength > 0 && fileInfo.Size() != contentLength {
-		return fmt.Errorf("文件下载不完整，期望大小: %d，实际大小: %d", contentLength, fileInfo.Size())
-	}
+	// 更新状态
+	hm.uiInstance.UpdateStatus(fmt.Sprintf("文件下载成功: %.2fKB", float64(len(fileData))/1024))
 
-	// 更新UI状态
-	if hm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("文件下载完成: %s，大小: %.2fKB", 
-			filepath.Base(filePath), float64(fileInfo.Size())/1024)
-		hm.uiInstance.UpdateStatus(statusMsg)
-	}
-
-	// 记录操作日志
-	log.Printf("文件下载成功: %s -> %s，大小: %d字节，耗时: %v", 
-		urlStr, filePath, fileInfo.Size(), time.Since(time.Now()))
+	log.Printf("成功下载文件: %s，大小: %d字节", urlStr, len(fileData))
 	return nil
 }
 
-// GetDefaultURL 获取默认的测试URL
+// TestAPI 测试公共API接口
+// 使用JSONPlaceholder API进行测试，验证HTTP客户端的基本功能
+// 将测试结果展示在UI表格中，并更新状态栏
 // 返回:
-//   - string: 默认的HTTP测试URL
-func (hm *HTTPManager) GetDefaultURL() string {
-	// 返回一个稳定的测试API URL
-	return "https://jsonplaceholder.typicode.com/posts/1"
+//   - error: 操作错误，nil表示成功
+func (hm *HTTPManager) TestAPI() error {
+	// 更新UI状态，提示用户正在测试API
+	hm.uiInstance.UpdateStatus("正在测试公共API...")
+
+	// 测试JSONPlaceholder API
+	testURL := "https://jsonplaceholder.typicode.com/posts/1"
+
+	// 发送GET请求
+	resp, err := hm.client.R().Get(testURL)
+	if err != nil {
+		return fmt.Errorf("API测试失败: %v", err)
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("API响应错误，状态码: %d", resp.StatusCode())
+	}
+
+	// 解析响应
+	body := resp.String()
+
+	// 准备显示数据
+	var data [][]string
+	data = append(data, []string{"API测试项目", "结果"})
+	data = append(data, []string{"测试URL", testURL})
+	data = append(data, []string{"状态码", fmt.Sprintf("%d", resp.StatusCode())})
+	data = append(data, []string{"响应时间", time.Now().Format("2006-01-02 15:04:05")})
+	data = append(data, []string{"响应数据", truncateString(body, 300)})
+
+	// 更新UI
+	hm.uiInstance.SetTableData(data)
+	hm.uiInstance.UpdateStatus("API测试成功")
+
+	log.Printf("API测试成功: %s", testURL)
+	return nil
+}
+
+// GetRequestInfo 获取请求详细信息
+// 将HTTP请求的各个组成部分整理为键值对，便于展示和调试
+// 参数:
+//   - method: HTTP方法
+//   - urlStr: 请求URL
+//   - headers: 请求头
+//   - data: 请求数据
+//
+// 返回:
+//   - map[string]string: 请求信息键值对
+func (hm *HTTPManager) GetRequestInfo(method, urlStr string, headers map[string]string, data interface{}) map[string]string {
+	info := make(map[string]string)
+
+	info["方法"] = method
+	info["URL"] = urlStr
+	info["时间"] = time.Now().Format("2006-01-02 15:04:05")
+
+	if headers != nil {
+		info["头部数量"] = fmt.Sprintf("%d个", len(headers))
+	}
+
+	if data != nil {
+		info["数据大小"] = fmt.Sprintf("%d字节", getDataSize(data))
+	}
+
+	return info
+}
+
+// SetTimeout 设置请求超时时间
+// 动态调整HTTP客户端的超时时间，适应不同网络环境
+// 参数:
+//   - timeout: 超时时间
+func (hm *HTTPManager) SetTimeout(timeout time.Duration) {
+	hm.client.SetTimeout(timeout)
+	hm.uiInstance.UpdateStatus(fmt.Sprintf("设置请求超时时间: %v", timeout))
+}
+
+// GetClient 获取HTTP客户端实例
+// 返回底层的HTTP客户端实例，允许进行更高级的配置
+// 返回:
+//   - *resty.Client: HTTP客户端实例
+func (hm *HTTPManager) GetClient() *resty.Client {
+	return hm.client
+}
+
+// 辅助函数
+
+// isJSONResponse 检查响应是否为JSON格式
+// 通过检查响应内容的前缀字符判断是否为JSON格式
+// 参数:
+//   - body: 响应内容字符串
+//
+// 返回:
+//   - bool: 是否为JSON格式
+func isJSONResponse(body string) bool {
+	lowerBody := strings.ToLower(body)
+	return strings.HasPrefix(strings.TrimSpace(lowerBody), "{") ||
+		strings.HasPrefix(strings.TrimSpace(lowerBody), "[")
+}
+
+// isHTMLResponse 检查响应是否为HTML格式
+// 通过检查响应内容是否包含HTML标签判断是否为HTML格式
+// 参数:
+//   - body: 响应内容字符串
+//
+// 返回:
+//   - bool: 是否为HTML格式
+func isHTMLResponse(body string) bool {
+	lowerBody := strings.ToLower(body)
+	return strings.Contains(lowerBody, "<html") ||
+		strings.Contains(lowerBody, "<!doctype")
+}
+
+// isJSON 检查字符串是否为JSON格式
+// 通过检查字符串的第一个字符判断是否为JSON格式
+// 参数:
+//   - str: 待检查的字符串
+//
+// 返回:
+//   - bool: 是否为JSON格式
+func isJSON(str string) bool {
+	if strings.TrimSpace(str) == "" {
+		return false
+	}
+	firstChar := strings.TrimSpace(str)[0]
+	return firstChar == '{' || firstChar == '['
+}
+
+// truncateString 截断字符串
+// 当字符串长度超过指定限制时，截断并添加省略号
+// 参数:
+//   - str: 待截断的字符串
+//   - maxLen: 最大长度
+//
+// 返回:
+//   - string: 截断后的字符串
+func truncateString(str string, maxLen int) string {
+	if len(str) <= maxLen {
+		return str
+	}
+	return str[:maxLen] + "..."
+}
+
+// convertToJSONString 将map转换为JSON字符串
+// 将map[string]interface{}类型的数据序列化为JSON字符串
+// 参数:
+//   - data: 待转换的数据
+//
+// 返回:
+//   - string: JSON字符串
+//   - error: 错误信息
+func convertToJSONString(data interface{}) (string, error) {
+	// 转换为JSON字符串
+	switch v := data.(type) {
+	case map[string]interface{}:
+		jsonBytes, err := json.Marshal(v)
+		if err != nil {
+			return "", fmt.Errorf("JSON序列化失败: %v", err)
+		}
+		return string(jsonBytes), nil
+	default:
+		return "", fmt.Errorf("不支持的数据类型: %T", v)
+	}
+}
+
+// getDataSize 获取数据大小
+// 计算不同类型数据的字节大小，用于显示和统计
+// 参数:
+//   - data: 待计算的数据
+//
+// 返回:
+//   - int: 数据大小（字节）
+func getDataSize(data interface{}) int {
+	switch v := data.(type) {
+	case string:
+		return len([]byte(v))
+	case []byte:
+		return len(v)
+	case map[string]string:
+		return len(v)
+	case map[string]interface{}:
+		return len(v)
+	default:
+		return 0
+	}
+}
+
+// saveFile 保存文件到本地
+// 将字节数据保存到指定文件路径，自动创建必要的目录结构
+// 参数:
+//   - filePath: 文件路径
+//   - data: 文件数据
+//
+// 返回:
+//   - error: 错误信息
+func (hm *HTTPManager) saveFile(filePath string, data []byte) error {
+	// 创建目录
+	dir := getDirectory(filePath)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("创建目录失败: %v", err)
+		}
+	}
+
+	// 写入文件
+	return os.WriteFile(filePath, data, 0644)
+}
+
+// getDirectory 获取文件目录
+// 从完整文件路径中提取目录部分
+// 参数:
+//   - filePath: 文件路径
+//
+// 返回:
+//   - string: 目录路径
+func getDirectory(filePath string) string {
+	return filepath.Dir(filePath)
 }

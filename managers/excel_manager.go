@@ -1,13 +1,6 @@
 // managers/excel_manager.go - Excel操作管理器
-// 功能描述: 提供Excel文件的导入导出功能，支持.xlsx格式
-// 主要功能:
-//   - Excel文件导入：读取Excel文件内容并显示在UI表格中
-//   - Excel文件导出：将UI表格数据导出为Excel文件
-//   - 数据验证：检查文件路径、数据格式和Excel限制
-//   - 错误处理：提供详细的错误信息和状态反馈
-// 作者: GO_VCL开发团队
-// 创建时间: 2025-11-12
-
+// 本文件提供了Excel文件的读取、写入、转换和验证等功能
+// 使用excelize库作为底层Excel操作引擎，支持.xlsx和.xlsm格式
 package managers
 
 import (
@@ -23,7 +16,8 @@ import (
 )
 
 // ExcelManager Excel操作管理器
-// 负责处理Excel文件的读写操作，提供UI集成功能
+// 封装了Excel文件的常用操作，包括导入、导出、信息获取和格式转换等功能
+// 通过UIInterface接口与用户界面交互，提供操作反馈
 type ExcelManager struct {
 	uiInstance interfaces.UIInterface // UI实例接口，用于显示操作状态和结果
 }
@@ -34,9 +28,6 @@ type ExcelManager struct {
 //
 // 返回:
 //   - *ExcelManager: Excel管理器实例
-//
-// 使用示例:
-//   excelManager := managers.NewExcelManager(mainForm)
 func NewExcelManager(ui interfaces.UIInterface) *ExcelManager {
 	return &ExcelManager{
 		uiInstance: ui,
@@ -44,40 +35,23 @@ func NewExcelManager(ui interfaces.UIInterface) *ExcelManager {
 }
 
 // SetUIInstance 设置UI实例
-// 用于在运行时更新UI实例引用
+// 允许在创建ExcelManager后设置或更改UI实例
 // 参数:
-//   - ui: 新的UI实例
+//   - ui: UI实例接口实现
 func (em *ExcelManager) SetUIInstance(ui interfaces.UIInterface) {
 	em.uiInstance = ui
 }
 
 // ImportExcel 导入Excel文件到UI表格
-// 功能描述:
-//   - 读取指定路径的Excel文件（.xlsx格式）
-//   - 解析第一个工作表的数据内容
-//   - 将数据转换为表格格式并显示在UI中
-//   - 提供详细的导入状态和错误信息
-//
+// 读取指定Excel文件的第一个工作表数据，并填充到UI表格中
+// 自动过滤空行，确保导入的数据有效性
 // 参数:
-//   - filePath: Excel文件路径（必须存在且为.xlsx格式）
+//   - filePath: Excel文件路径
 //
 // 返回:
 //   - error: 操作错误，nil表示成功
-//
-// 可能的错误:
-//   - "Excel文件路径不能为空": filePath参数为空
-//   - "Excel文件不存在": 指定路径的文件不存在
-//   - "打开Excel文件失败": 文件格式错误或损坏
-//   - "Excel文件中没有工作表": 文件为空或没有工作表
-//   - "工作表中没有数据": 第一个工作表为空
-//
-// 使用示例:
-//   err := excelManager.ImportExcel("C:\\data\\employees.xlsx")
-//   if err != nil {
-//       log.Printf("导入失败: %v", err)
-//   }
 func (em *ExcelManager) ImportExcel(filePath string) error {
-	// 验证输入参数
+	// 检查文件路径是否为空
 	if filePath == "" {
 		return fmt.Errorf("Excel文件路径不能为空")
 	}
@@ -87,25 +61,27 @@ func (em *ExcelManager) ImportExcel(filePath string) error {
 		return fmt.Errorf("Excel文件不存在: %s", filePath)
 	}
 
-	// 更新UI状态，通知用户开始导入操作
-	if em.uiInstance != nil {
-		em.uiInstance.UpdateStatus("正在读取Excel文件...")
-	}
+	// 更新UI状态，通知用户开始读取文件
+	em.uiInstance.UpdateStatus("正在读取Excel文件...")
 
-	// 打开Excel文件
+	// 使用excelize库打开Excel文件
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
 		return fmt.Errorf("打开Excel文件失败: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("关闭Excel文件时出错: %v", closeErr)
+		}
+	}()
 
-	// 获取工作表列表
+	// 获取所有工作表名称
 	sheetNames := f.GetSheetList()
 	if len(sheetNames) == 0 {
 		return fmt.Errorf("Excel文件中没有工作表")
 	}
 
-	// 默认读取第一个工作表
+	// 获取第一个工作表的数据
 	sheetName := sheetNames[0]
 	rows, err := f.GetRows(sheetName)
 	if err != nil {
@@ -116,15 +92,13 @@ func (em *ExcelManager) ImportExcel(filePath string) error {
 		return fmt.Errorf("工作表中没有数据")
 	}
 
-	// 更新UI状态
-	if em.uiInstance != nil {
-		em.uiInstance.UpdateStatus("正在更新UI表格...")
-	}
+	// 更新UI状态，通知用户正在更新表格
+	em.uiInstance.UpdateStatus("正在更新UI表格...")
 
-	// 数据预处理：过滤空行
+	// 准备表格数据，过滤空行
 	tableData := make([][]string, 0)
-	for rowIndex, row := range rows {
-		// 检查是否为有效数据行（非空行）
+	for _, row := range rows {
+		// 检查行中是否包含非空数据
 		hasData := false
 		for _, cell := range row {
 			if strings.TrimSpace(cell) != "" {
@@ -132,21 +106,17 @@ func (em *ExcelManager) ImportExcel(filePath string) error {
 				break
 			}
 		}
-		// 只保留包含有效数据的行
+		// 只保留包含数据的行
 		if hasData {
 			tableData = append(tableData, row)
-		} else {
-			log.Printf("跳过空行: 第%d行", rowIndex+1)
 		}
 	}
 
 	// 更新UI表格数据
-	if em.uiInstance != nil {
-		em.uiInstance.SetTableData(tableData)
-		// 更新状态信息
-		statusMsg := fmt.Sprintf("成功导入Excel文件，共%d行数据", len(tableData))
-		em.uiInstance.UpdateStatus(statusMsg)
-	}
+	em.uiInstance.SetTableData(tableData)
+
+	// 更新状态栏，显示导入结果
+	em.uiInstance.UpdateStatus(fmt.Sprintf("成功导入Excel文件，共%d行数据", len(tableData)))
 
 	// 记录操作日志
 	log.Printf("成功导入Excel文件: %s，工作表: %s，数据行数: %d", filePath, sheetName, len(tableData))
@@ -154,95 +124,64 @@ func (em *ExcelManager) ImportExcel(filePath string) error {
 }
 
 // ExportExcel 从UI表格导出数据到Excel文件
-// 功能描述:
-//   - 获取UI表格中的数据（或指定的数据）
-//   - 创建新的Excel文件并写入数据
-//   - 支持自动创建目录和文件扩展名处理
-//   - 提供Excel格式限制检查和错误处理
-//
+// 将UI表格中的数据或提供的数据导出到Excel文件
+// 自动创建目录结构，确保文件路径有效
 // 参数:
-//   - filePath: 输出Excel文件路径（自动添加.xlsx扩展名）
+//   - filePath: 输出Excel文件路径
 //   - data: 要导出的数据（如果为nil则从UI表格获取）
 //
 // 返回:
 //   - error: 操作错误，nil表示成功
-//
-// 特殊功能:
-//   - 自动添加.xlsx扩展名（如果没有）
-//   - 自动创建输出目录（如果不存在）
-//   - 支持1048576行×16384列（Excel限制）
-//   - 空值自动转换为空字符串
-//
-// 可能的错误:
-//   - "输出文件路径不能为空": filePath参数为空
-//   - "创建目录失败": 输出目录创建失败
-//   - "没有数据可以导出": 数据源为空
-//   - "行数超过Excel限制": 数据行数超过1,048,576
-//   - "列数超过Excel限制": 数据列数超过16,384
-//   - "转换单元格地址失败": Excel内部地址转换错误
-//
-// 使用示例:
-//   // 从UI表格导出
-//   err := excelManager.ExportExcel("C:\\output\\report.xlsx", nil)
-//   
-//   // 导出指定数据
-//   data := [][]string{
-//       {"姓名", "年龄", "部门"},
-//       {"张三", "25", "技术部"},
-//       {"李四", "30", "销售部"},
-//   }
-//   err := excelManager.ExportExcel("C:\\output\\employees.xlsx", data)
 func (em *ExcelManager) ExportExcel(filePath string, data [][]string) error {
-	// 验证文件路径
+	// 检查文件路径是否为空
 	if filePath == "" {
 		return fmt.Errorf("输出文件路径不能为空")
 	}
 
-	// 确保文件扩展名为.xlsx
+	// 确保文件扩展名为.xlsx格式
 	if !strings.HasSuffix(strings.ToLower(filePath), ".xlsx") {
 		filePath += ".xlsx"
-		log.Printf("自动添加.xlsx扩展名，新路径: %s", filePath)
 	}
 
-	// 创建输出目录（如果不存在）
+	// 创建目录结构（如果不存在）
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("创建目录失败: %v", err)
 	}
 
-	// 更新UI状态
-	if em.uiInstance != nil {
-		em.uiInstance.UpdateStatus("正在导出Excel文件...")
-	}
+	// 更新UI状态，通知用户开始导出
+	em.uiInstance.UpdateStatus("正在导出Excel文件...")
 
 	// 创建新的Excel文件
 	f := excelize.NewFile()
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("关闭Excel文件时出错: %v", closeErr)
+		}
+	}()
 
 	// 获取数据源
 	var tableData [][]string
 	if data != nil {
-		// 使用指定的数据
 		tableData = data
-	} else if em.uiInstance != nil {
+	} else {
 		// 从UI表格获取数据
 		tableData = em.uiInstance.GetTableData()
 	}
 
-	// 验证数据有效性
 	if len(tableData) == 0 {
 		return fmt.Errorf("没有数据可以导出")
 	}
 
 	// 写入数据到Excel，添加详细的索引验证和调试信息
 	for rowIndex := 0; rowIndex < len(tableData); rowIndex++ {
-		// 数据行验证
+		// 检查输入数据有效性
 		if tableData[rowIndex] == nil {
-			log.Printf("警告: 第%d行数据为nil，跳过此行", rowIndex+1)
+			log.Printf("警告: 第%d行数据为nil，跳过此行", rowIndex)
 			continue
 		}
 		
-		// Excel行数限制检查（Excel 2007+ 最大支持1,048,576行）
+		// 检查是否超过Excel行数限制（Excel 2007及以后版本限制为1,048,576行）
 		if rowIndex >= 1048576 {
 			return fmt.Errorf("行数超过Excel限制: %d", rowIndex+1)
 		}
@@ -250,67 +189,67 @@ func (em *ExcelManager) ExportExcel(filePath string, data [][]string) error {
 		rowData := tableData[rowIndex]
 		log.Printf("处理第%d行数据，列数: %d", rowIndex+1, len(rowData))
 		
-		// 处理每一列数据
 		for colIndex := 0; colIndex < len(rowData); colIndex++ {
-			// Excel列数限制检查（Excel 2007+ 最大支持16,384列）
+			// 检查是否超过Excel列数限制（Excel 2007及以后版本限制为16,384列）
 			if colIndex >= 16384 {
 				return fmt.Errorf("列数超过Excel限制: %d", colIndex+1)
 			}
 			
 			cellValue := rowData[colIndex]
 			
-			// 确保单元格值有效（避免nil值）
+			// 确保单元格值不是nil
 			if cellValue == "" {
 				cellValue = "" // 确保是空字符串而不是nil
 			}
 			
-			// 转换索引为Excel单元格地址（Excel使用1-based索引）
+			// 转换列索引为Excel列名，Excel中行和列索引从1开始
 			excelCol := colIndex + 1
 			excelRow := rowIndex + 1
 			
-			// 地址范围安全检查
+			// 额外的安全检查，确保索引在有效范围内
 			if excelCol < 1 || excelCol > 16384 || excelRow < 1 || excelRow > 1048576 {
 				return fmt.Errorf("Excel索引超出范围: 列=%d, 行=%d", excelCol, excelRow)
 			}
 			
-			// 使用defer捕获和处理可能的panic
+			// 使用defer捕获可能发生的panic，增强程序健壮性
 			defer func() {
 				if r := recover(); r != nil {
 					log.Printf("Excel设置单元格异常 (列=%d, 行=%d): %v", excelCol, excelRow, r)
 				}
 			}()
 			
-			// 生成Excel单元格地址（如"A1", "B2"等）
+			// 将行列索引转换为Excel单元格地址（如A1, B2等）
 			cellName, err := excelize.CoordinatesToCellName(excelCol, excelRow)
 			if err != nil {
 				return fmt.Errorf("转换单元格地址失败 (列=%d, 行=%d): %v", excelCol, excelRow, err)
 			}
 			
-			// 设置单元格值，包含错误处理
-			if err := f.SetCellValue("Sheet1", cellName, cellValue); err != nil {
-				log.Printf("设置单元格值失败 (单元格=%s, 值=%s): %v", cellName, cellValue, err)
-				// 继续处理其他单元格，不中断整个导出过程
+			// 安全地设置单元格值
+			if len(cellValue) > 0 {
+				f.SetCellValue("Sheet1", cellName, cellValue)
+				log.Printf("设置单元格 %s: '%s'", cellName, cellValue)
+			} else {
+				f.SetCellValue("Sheet1", cellName, "")
+				log.Printf("设置单元格 %s: (空值)", cellName)
 			}
 		}
 	}
 
-	// 保存Excel文件
+	// 保存文件到指定路径
 	if err := f.SaveAs(filePath); err != nil {
 		return fmt.Errorf("保存Excel文件失败: %v", err)
 	}
 
-	// 更新UI状态和完成信息
-	if em.uiInstance != nil {
-		statusMsg := fmt.Sprintf("成功导出Excel文件: %s", filePath)
-		em.uiInstance.UpdateStatus(statusMsg)
-	}
+	// 更新状态栏，显示导出结果
+	em.uiInstance.UpdateStatus(fmt.Sprintf("成功导出Excel文件: %s，共%d行数据", filePath, len(tableData)))
 
-	// 记录操作成功日志
+	// 记录操作日志
 	log.Printf("成功导出Excel文件: %s，数据行数: %d", filePath, len(tableData))
 	return nil
 }
 
 // GetExcelInfo 获取Excel文件信息
+// 提取Excel文件的基本信息，包括工作表数量、数据行数、文件大小等
 // 参数:
 //   - filePath: Excel文件路径
 //
@@ -318,6 +257,7 @@ func (em *ExcelManager) ExportExcel(filePath string, data [][]string) error {
 //   - map[string]interface{}: Excel文件信息
 //   - error: 操作错误，nil表示成功
 func (em *ExcelManager) GetExcelInfo(filePath string) (map[string]interface{}, error) {
+	// 检查文件路径
 	if filePath == "" {
 		return nil, fmt.Errorf("Excel文件路径不能为空")
 	}
@@ -332,12 +272,16 @@ func (em *ExcelManager) GetExcelInfo(filePath string) (map[string]interface{}, e
 	if err != nil {
 		return nil, fmt.Errorf("打开Excel文件失败: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("关闭Excel文件时出错: %v", closeErr)
+		}
+	}()
 
-	// 获取文件信息
+	// 创建信息映射
 	info := make(map[string]interface{})
 
-	// 工作表信息
+	// 获取工作表信息
 	sheetNames := f.GetSheetList()
 	info["工作表数量"] = len(sheetNames)
 	info["工作表列表"] = sheetNames
@@ -354,7 +298,7 @@ func (em *ExcelManager) GetExcelInfo(filePath string) (map[string]interface{}, e
 		}
 	}
 
-	// 文件信息
+	// 获取文件系统信息
 	fileInfo, err := os.Stat(filePath)
 	if err == nil {
 		info["文件名"] = filepath.Base(filePath)
@@ -366,6 +310,8 @@ func (em *ExcelManager) GetExcelInfo(filePath string) (map[string]interface{}, e
 }
 
 // ConvertToJSON 将Excel数据转换为JSON格式
+// 读取Excel文件的第一个工作表数据，并将其转换为JSON格式
+// 每行数据转换为JSON对象，列索引作为键名
 // 参数:
 //   - filePath: Excel文件路径
 //
@@ -373,6 +319,7 @@ func (em *ExcelManager) GetExcelInfo(filePath string) (map[string]interface{}, e
 //   - string: JSON格式的数据
 //   - error: 操作错误，nil表示成功
 func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
+	// 检查文件路径
 	if filePath == "" {
 		return "", fmt.Errorf("Excel文件路径不能为空")
 	}
@@ -382,7 +329,11 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("打开Excel文件失败: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("关闭Excel文件时出错: %v", closeErr)
+		}
+	}()
 
 	// 获取第一个工作表的数据
 	sheetNames := f.GetSheetList()
@@ -399,7 +350,7 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 		return "", fmt.Errorf("工作表中没有数据")
 	}
 
-	// 转换为JSON
+	// 转换为JSON格式
 	var result []map[string]string
 	for _, row := range rows {
 		if len(row) > 0 {
@@ -412,9 +363,10 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 				}
 			}
 			if hasData {
+				// 将每行数据转换为键值对映射
 				rowMap := make(map[string]string)
 				for colIndex, cellValue := range row {
-					// 使用列索引作为键
+					// 使用列索引作为键（列1, 列2, ...）
 					rowMap[fmt.Sprintf("列%d", colIndex+1)] = cellValue
 				}
 				result = append(result, rowMap)
@@ -422,7 +374,7 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 		}
 	}
 
-	// 序列化为JSON
+	// 序列化为格式化的JSON字符串
 	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("转换为JSON失败: %v", err)
@@ -432,6 +384,7 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 }
 
 // ValidateExcelFile 验证Excel文件格式
+// 检查文件是否存在、扩展名是否正确、是否可以正常打开
 // 参数:
 //   - filePath: Excel文件路径
 //
@@ -439,6 +392,7 @@ func (em *ExcelManager) ConvertToJSON(filePath string) (string, error) {
 //   - bool: 是否为有效的Excel文件
 //   - string: 验证结果描述
 func (em *ExcelManager) ValidateExcelFile(filePath string) (bool, string) {
+	// 检查文件路径
 	if filePath == "" {
 		return false, "文件路径为空"
 	}
@@ -448,18 +402,22 @@ func (em *ExcelManager) ValidateExcelFile(filePath string) (bool, string) {
 		return false, "文件不存在"
 	}
 
-	// 检查文件扩展名
+	// 检查文件扩展名是否为支持的格式
 	ext := strings.ToLower(filepath.Ext(filePath))
 	if ext != ".xlsx" && ext != ".xlsm" {
 		return false, "不支持的文件格式，只支持.xlsx和.xlsm格式"
 	}
 
-	// 尝试打开文件
+	// 尝试打开文件，验证文件格式是否正确
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
 		return false, fmt.Sprintf("文件格式错误或损坏: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("关闭Excel文件时出错: %v", closeErr)
+		}
+	}()
 
 	// 检查是否有工作表
 	sheetNames := f.GetSheetList()
@@ -471,10 +429,10 @@ func (em *ExcelManager) ValidateExcelFile(filePath string) (bool, string) {
 }
 
 // GetDefaultFilePath 获取默认的Excel文件路径
+// 返回项目目录下的一个默认Excel文件路径，用于演示和测试
 // 返回:
 //   - string: 默认文件路径
 func (em *ExcelManager) GetDefaultFilePath() string {
-	// 返回项目目录下的一个默认Excel文件路径
+	// 返回项目目录下的data子目录中的demo.xlsx文件
 	return "data" + string(os.PathSeparator) + "demo.xlsx"
 }
-

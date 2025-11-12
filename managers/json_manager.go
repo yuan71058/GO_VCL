@@ -1,472 +1,480 @@
 // managers/json_manager.go - JSON操作管理器
-// 功能描述: 提供JSON数据的解析、查询、修改和创建功能
-// 主要功能:
-//   - JSON解析：将JSON字符串解析为Go数据结构
-//   - 路径查询：支持JSONPath风格的查询语法
-//   - 数据修改：通过路径修改JSON中的特定值
-//   - JSON创建：从数据结构生成格式化的JSON字符串
-//   - 错误处理：提供详细的解析错误和路径错误信息
-// 作者: GO_VCL开发团队
-// 创建时间: 2025-11-12
-
+// 该文件实现了JSON操作管理器，提供JSON解析、路径查询、值设置、文件操作等功能
+// 支持JSON数据的创建、读取、修改、保存和验证，并提供了丰富的辅助函数用于处理JSON数据
 package managers
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"windows-gui-app/interfaces"
+
+	"github.com/tidwall/gjson"
 )
 
 // JSONManager JSON操作管理器
-// 负责处理JSON数据的解析、查询和修改操作，提供UI集成功能
+// 封装了JSON操作相关的功能，提供JSON解析、路径查询、值设置、文件操作等接口
+// 与UI组件交互，将操作结果展示在用户界面上
 type JSONManager struct {
-	uiInstance interfaces.UIInterface // UI实例接口，用于显示操作状态和结果
-	jsonData   interface{}            // 当前处理的JSON数据
+	uiInstance interfaces.UIInterface // UI实例接口，用于更新界面状态和数据
 }
 
 // NewJSONManager 创建JSON管理器实例
+// 初始化JSON管理器，并关联UI实例
 // 参数:
 //   - ui: UI实例，用于显示操作结果（可以为nil，之后通过SetUIInstance设置）
 //
 // 返回:
 //   - *JSONManager: JSON管理器实例
-//
-// 使用示例:
-//   jsonManager := managers.NewJSONManager(mainForm)
 func NewJSONManager(ui interfaces.UIInterface) *JSONManager {
 	return &JSONManager{
 		uiInstance: ui,
-		jsonData:   nil,
 	}
 }
 
 // SetUIInstance 设置UI实例
-// 用于在运行时更新UI实例引用
+// 允许在创建管理器后设置UI实例，用于解耦合UI和管理器的创建顺序
 // 参数:
-//   - ui: 新的UI实例
+//   - ui: UI实例接口
 func (jm *JSONManager) SetUIInstance(ui interfaces.UIInterface) {
 	jm.uiInstance = ui
 }
 
 // ParseJSON 解析JSON字符串
-// 功能描述:
-//   - 将JSON字符串解析为Go的interface{}数据结构
-//   - 支持任意有效的JSON格式（对象、数组、基本类型）
-//   - 自动检测和处理JSON格式错误
-//   - 更新内部jsonData状态，供后续操作使用
-//   - 提供详细的解析错误信息
-//
+// 验证JSON格式并解析为键值对，将结果展示在UI表格中
+// 使用gjson库进行高效解析，支持复杂的JSON结构
 // 参数:
-//   - jsonStr: 要解析的JSON字符串
+//   - jsonData: JSON字符串
 //
 // 返回:
-//   - interface{}: 解析后的JSON数据
-//   - error: 解析错误，nil表示成功
-//
-// 支持的JSON类型:
-//   - 对象: {"name": "张三", "age": 25}
-//   - 数组: [1, 2, 3, "test"]
-//   - 字符串: "Hello World"
-//   - 数字: 123, 45.67
-//   - 布尔值: true, false
-//   - null: null
-//
-// 可能的错误:
-//   - "JSON字符串不能为空": jsonStr参数为空或仅包含空白字符
-//   - "解析JSON失败": JSON格式错误，包含具体错误位置
-//
-// 使用示例:
-//   jsonStr := `{"users": [{"name": "张三", "age": 25}, {"name": "李四", "age": 30}]}`
-//   data, err := jsonManager.ParseJSON(jsonStr)
-//   if err != nil {
-//       log.Printf("解析失败: %v", err)
-//   }
-func (jm *JSONManager) ParseJSON(jsonStr string) (interface{}, error) {
-	// 验证输入参数
-	if strings.TrimSpace(jsonStr) == "" {
-		return nil, fmt.Errorf("JSON字符串不能为空")
+//   - error: 操作错误，nil表示成功
+func (jm *JSONManager) ParseJSON(jsonData string) error {
+	if strings.TrimSpace(jsonData) == "" {
+		return fmt.Errorf("JSON数据不能为空")
 	}
 
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		jm.uiInstance.UpdateStatus("正在解析JSON数据...")
+	// 更新UI状态，提示用户正在解析JSON
+	jm.uiInstance.UpdateStatus("正在解析JSON数据...")
+
+	// 验证JSON格式
+	var rawData interface{}
+	if err := json.Unmarshal([]byte(jsonData), &rawData); err != nil {
+		return fmt.Errorf("JSON格式错误: %v", err)
 	}
 
-	// 解析JSON数据
-	var data interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
-		return nil, fmt.Errorf("解析JSON失败: %v", err)
-	}
+	// 使用gjson解析并美化输出
+	result := gjson.Parse(jsonData)
 
-	// 更新内部状态
-	jm.jsonData = data
+	// 获取键值对列表
+	var data [][]string
+	data = append(data, []string{"键", "值", "类型"})
 
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("成功解析JSON数据，类型: %T", data)
-		jm.uiInstance.UpdateStatus(statusMsg)
-	}
+	// 遍历根级属性
+	result.ForEach(func(key, value gjson.Result) bool {
+		data = append(data, []string{
+			key.String(),
+			value.String(),
+			value.Type.String(),
+		})
+		return true
+	})
 
-	// 记录操作日志
-	log.Printf("成功解析JSON数据，长度: %d字符，类型: %T", len(jsonStr), data)
-	return data, nil
+	// 更新UI表格显示
+	jm.uiInstance.SetTableData(data)
+
+	// 更新状态
+	jm.uiInstance.UpdateStatus(fmt.Sprintf("成功解析JSON数据，共有%d个属性", len(data)-1))
+
+	log.Printf("成功解析JSON数据，键值对数量: %d", len(data)-1)
+	return nil
 }
 
-// GetValueByPath 通过路径获取JSON中的值
-// 功能描述:
-//   - 支持简单的点号路径语法（如"user.name", "items.0.title"）
-//   - 支持数组索引访问（如"users.0", "items.2.price"）
-//   - 支持嵌套对象和数组的混合访问
-//   - 提供详细的路径错误信息
-//   - 返回值的类型保持原始JSON类型
-//
+// GetValueByPath 根据路径获取JSON值
+// 使用gjson库的路径查询功能，支持复杂的JSON路径表达式
+// 路径格式示例："user.name"、"items.0.name"、"users.#.name"等
 // 参数:
-//   - path: 查询路径，使用点号分隔（如"user.name", "items.0.title"）
-//   - data: JSON数据（如果为nil则使用内部jsonData）
+//   - jsonData: JSON字符串
+//   - path: 路径，如 "user.name" 或 "items.0.name"
 //
 // 返回:
-//   - interface{}: 查询到的值，nil表示未找到
-//   - bool: 是否找到值
+//   - string: 获取到的值
 //   - error: 操作错误，nil表示成功
-//
-// 支持的路径格式:
-//   - "name": 获取顶级字段
-//   - "user.name": 获取嵌套对象的字段
-//   - "users.0": 获取数组的第一个元素
-//   - "items.2.name": 获取数组中对象的字段
-//   - "config.database.host": 深层嵌套访问
-//
-// 可能的错误:
-//   - "查询路径不能为空": path参数为空或仅包含空白字符
-//   - "JSON数据为空": 没有可用的JSON数据
-//   - "路径格式错误": 路径包含非法字符或格式
-//
-// 使用示例:
-//   // 从内部数据查询
-//   value, found, err := jsonManager.GetValueByPath("users.0.name", nil)
-//   
-//   // 从指定数据查询
-//   data := map[string]interface{}{"user": map[string]interface{}{"name": "张三"}}
-//   value, found, err := jsonManager.GetValueByPath("user.name", data)
-func (jm *JSONManager) GetValueByPath(path string, data interface{}) (interface{}, bool, error) {
-	// 验证路径参数
+func (jm *JSONManager) GetValueByPath(jsonData, path string) (string, error) {
+	if strings.TrimSpace(jsonData) == "" {
+		return "", fmt.Errorf("JSON数据不能为空")
+	}
+
 	if strings.TrimSpace(path) == "" {
-		return nil, false, fmt.Errorf("查询路径不能为空")
+		return "", fmt.Errorf("路径不能为空")
 	}
 
-	// 确定数据源
-	var targetData interface{}
-	if data != nil {
-		targetData = data
-	} else {
-		targetData = jm.jsonData
-	}
-
-	// 检查数据有效性
-	if targetData == nil {
-		return nil, false, fmt.Errorf("JSON数据为空")
+	// 解析JSON
+	result := gjson.Get(jsonData, path)
+	if !result.Exists() {
+		return "", fmt.Errorf("路径 '%s' 不存在", path)
 	}
 
 	// 更新UI状态
-	if jm.uiInstance != nil {
-		jm.uiInstance.UpdateStatus(fmt.Sprintf("正在查询路径: %s", path))
-	}
+	jm.uiInstance.UpdateStatus(fmt.Sprintf("获取路径 '%s' 的值: %s", path, result.String()))
 
-	// 分割路径
-	parts := strings.Split(path, ".")
-	current := targetData
-
-	// 遍历路径各部分
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" {
-			continue
-		}
-
-		switch v := current.(type) {
-		case map[string]interface{}:
-			// 处理对象类型
-			if val, ok := v[part]; ok {
-				current = val
-			} else {
-				return nil, false, nil // 路径不存在
-			}
-		case []interface{}:
-			// 处理数组类型
-			var index int
-			if _, err := fmt.Sscanf(part, "%d", &index); err != nil {
-				return nil, false, fmt.Errorf("路径格式错误: %s不是有效的数组索引", part)
-			}
-			if index < 0 || index >= len(v) {
-				return nil, false, nil // 索引越界
-			}
-			current = v[index]
-		default:
-			// 基本类型，无法继续访问
-			return nil, false, nil // 路径不存在
-		}
-	}
-
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("成功查询路径: %s，值类型: %T", path, current)
-		jm.uiInstance.UpdateStatus(statusMsg)
-	}
-
-	// 记录操作日志
-	log.Printf("成功查询JSON路径: %s，值类型: %T", path, current)
-	return current, true, nil
+	log.Printf("成功获取JSON路径 '%s' 的值: %s", path, result.String())
+	return result.String(), nil
 }
 
-// SetValueByPath 通过路径设置JSON中的值
-// 功能描述:
-//   - 支持创建新的嵌套对象和数组
-//   - 支持修改现有值
-//   - 自动处理类型转换和验证
-//   - 提供详细的修改状态信息
-//
+// SetValueByPath 根据路径设置JSON值
+// 解析JSON为map结构，递归设置指定路径的值，并返回更新后的JSON字符串
+// 支持多级路径设置，自动创建不存在的中间对象
 // 参数:
-//   - path: 要设置值的路径（如"user.name", "items.0.title"）
-//   - value: 要设置的值（支持任意JSON兼容类型）
-//   - data: JSON数据（如果为nil则使用内部jsonData）
+//   - jsonData: 原始JSON字符串
+//   - path: 路径，如 "user.age"
+//   - value: 要设置的值
 //
 // 返回:
-//   - interface{}: 修改后的JSON数据
+//   - string: 更新后的JSON字符串
 //   - error: 操作错误，nil表示成功
-//
-// 特殊功能:
-//   - 自动创建不存在的路径
-//   - 支持基本类型和复杂对象
-//   - 保持原始数据的其他部分不变
-//
-// 可能的错误:
-//   - "路径不能为空": path参数为空
-//   - "值不能为空": value参数为nil且不允许
-//   - "不支持的路径格式": 路径包含非法结构
-//
-// 使用示例:
-//   // 修改内部数据
-//   newData, err := jsonManager.SetValueByPath("user.name", "李四", nil)
-//   
-//   // 修改指定数据
-//   data := map[string]interface{}{"user": map[string]interface{}{"name": "张三"}}
-//   newData, err := jsonManager.SetValueByPath("user.age", 25, data)
-func (jm *JSONManager) SetValueByPath(path string, value interface{}, data interface{}) (interface{}, error) {
-	// 验证参数
+func (jm *JSONManager) SetValueByPath(jsonData, path, value string) (string, error) {
+	if strings.TrimSpace(jsonData) == "" {
+		return "", fmt.Errorf("JSON数据不能为空")
+	}
+
 	if strings.TrimSpace(path) == "" {
-		return nil, fmt.Errorf("路径不能为空")
+		return "", fmt.Errorf("路径不能为空")
 	}
 
-	// 确定数据源
-	var targetData interface{}
-	if data != nil {
-		targetData = data
-	} else {
-		targetData = jm.jsonData
+	// 解析JSON到map结构
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		return "", fmt.Errorf("JSON格式错误: %v", err)
 	}
 
-	// 如果目标数据为空，创建新的map
-	if targetData == nil {
-		targetData = make(map[string]interface{})
+	// 解析路径
+	keys := strings.Split(path, ".")
+	if len(keys) == 0 {
+		return "", fmt.Errorf("无效的路径格式")
 	}
 
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		jm.uiInstance.UpdateStatus(fmt.Sprintf("正在设置路径: %s", path))
+	// 设置值
+	if err := jm.setValueInMap(data, keys, value); err != nil {
+		return "", fmt.Errorf("设置值失败: %v", err)
 	}
 
-	// 分割路径
-	parts := strings.Split(path, ".")
-	
-	// 创建副本以避免修改原始数据
-	result := jm.deepCopy(targetData)
-	current := result
-
-	// 遍历路径（除了最后一部分）
-	for i := 0; i < len(parts)-1; i++ {
-		part := strings.TrimSpace(parts[i])
-		if part == "" {
-			continue
-		}
-
-		switch v := current.(type) {
-		case map[string]interface{}:
-			// 确保路径存在
-			if _, ok := v[part]; !ok {
-				v[part] = make(map[string]interface{})
-			}
-			current = v[part]
-		case []interface{}:
-			// 处理数组索引
-			var index int
-			if _, err := fmt.Sscanf(part, "%d", &index); err != nil {
-				return nil, fmt.Errorf("不支持的路径格式: %s", part)
-			}
-			if index < 0 || index >= len(v) {
-				return nil, fmt.Errorf("数组索引越界: %d", index)
-			}
-			current = v[index]
-		default:
-			return nil, fmt.Errorf("不支持的路径格式")
-		}
+	// 重新序列化为JSON
+	updatedJSON, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("序列化JSON失败: %v", err)
 	}
 
-	// 设置最终值
-	lastPart := strings.TrimSpace(parts[len(parts)-1])
-	if lastPart == "" {
-		return nil, fmt.Errorf("路径格式错误")
+	// 更新UI
+	jm.uiInstance.UpdateStatus(fmt.Sprintf("成功更新路径 '%s' 的值", path))
+
+	log.Printf("成功设置JSON路径 '%s' 的值为: %s", path, value)
+	return string(updatedJSON), nil
+}
+
+// setValueInMap 在嵌套map中设置值
+// 递归遍历嵌套的map结构，设置指定路径的值
+// 如果中间路径不存在，自动创建新的map对象
+// 参数:
+//   - data: map结构数据
+//   - keys: 路径键数组
+//   - value: 要设置的值
+//
+// 返回:
+//   - error: 错误信息
+func (jm *JSONManager) setValueInMap(data map[string]interface{}, keys []string, value string) error {
+	if len(keys) == 1 {
+		// 最后一个键，直接设置值
+		data[keys[0]] = value
+		return nil
 	}
 
-	switch v := current.(type) {
-	case map[string]interface{}:
-		v[lastPart] = value
-	case []interface{}:
-		var index int
-		if _, err := fmt.Sscanf(lastPart, "%d", &index); err != nil {
-			return nil, fmt.Errorf("不支持的路径格式: %s", lastPart)
-		}
-		if index < 0 || index >= len(v) {
-			return nil, fmt.Errorf("数组索引越界: %d", index)
-		}
-		v[index] = value
-	default:
-		return nil, fmt.Errorf("不支持的路径格式")
+	// 获取或创建嵌套map
+	currentKey := keys[0]
+	if _, exists := data[currentKey]; !exists {
+		data[currentKey] = make(map[string]interface{})
 	}
 
-	// 更新内部状态
-	jm.jsonData = result
-
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("成功设置路径: %s，新值: %v", path, value)
-		jm.uiInstance.UpdateStatus(statusMsg)
+	// 类型断言
+	nestedMap, ok := data[currentKey].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("路径 '%s' 无法访问，类型不匹配", strings.Join(keys, "."))
 	}
 
-	// 记录操作日志
-	log.Printf("成功设置JSON路径: %s = %v", path, value)
-	return result, nil
+	// 递归设置值
+	return jm.setValueInMap(nestedMap, keys[1:], value)
 }
 
 // CreateJSON 创建新的JSON数据
-// 功能描述:
-//   - 从Go数据结构生成格式化的JSON字符串
-//   - 支持任意JSON兼容的数据类型
-//   - 提供美观的格式化输出选项
-//   - 自动处理循环引用检测
-//
+// 将任意类型的数据序列化为格式化的JSON字符串
+// 支持结构体、map、slice等Go数据类型
 // 参数:
-//   - data: 要转换为JSON的数据（支持map、slice、基本类型等）
-//   - pretty: 是否使用缩进格式化输出
+//   - data: 要转换为JSON的数据
 //
 // 返回:
-//   - string: 生成的JSON字符串
-//   - error: 转换错误，nil表示成功
-//
-// 支持的数据类型:
-//   - map[string]interface{}: JSON对象
-//   - []interface{}: JSON数组
 //   - string: JSON字符串
-//   - float64/int/bool: JSON基本类型
-//   - nil: JSON null值
-//
-// 可能的错误:
-//   - "数据不能为空": data参数为nil
-//   - "转换为JSON失败": 数据包含无法序列化的类型
-//
-// 使用示例:
-//   // 创建简单对象
-//   data := map[string]interface{}{
-//       "name": "张三",
-//       "age": 25,
-//       "active": true,
-//   }
-//   jsonStr, err := jsonManager.CreateJSON(data, true)
-//   
-//   // 创建数组
-//   items := []interface{}{"item1", "item2", "item3"}
-//   jsonStr, err := jsonManager.CreateJSON(items, false)
-func (jm *JSONManager) CreateJSON(data interface{}, pretty bool) (string, error) {
-	// 验证数据
+//   - error: 操作错误，nil表示成功
+func (jm *JSONManager) CreateJSON(data interface{}) (string, error) {
 	if data == nil {
 		return "", fmt.Errorf("数据不能为空")
 	}
 
-	// 更新UI状态
-	if jm.uiInstance != nil {
-		jm.uiInstance.UpdateStatus("正在创建JSON数据...")
-	}
-
 	// 序列化为JSON
-	var jsonData []byte
-	var err error
-
-	if pretty {
-		jsonData, err = json.MarshalIndent(data, "", "  ")
-	} else {
-		jsonData, err = json.Marshal(data)
-	}
-
+	jsonData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("转换为JSON失败: %v", err)
+		return "", fmt.Errorf("创建JSON失败: %v", err)
 	}
-
-	// 更新内部状态
-	jm.jsonData = data
 
 	// 更新UI状态
-	if jm.uiInstance != nil {
-		statusMsg := fmt.Sprintf("成功创建JSON数据，长度: %d字符", len(jsonData))
-		jm.uiInstance.UpdateStatus(statusMsg)
-	}
+	jm.uiInstance.UpdateStatus("成功创建新的JSON数据")
 
-	// 记录操作日志
-	log.Printf("成功创建JSON数据，长度: %d字符，类型: %T", len(jsonData), data)
+	log.Printf("成功创建JSON数据，大小: %d字节", len(jsonData))
 	return string(jsonData), nil
 }
 
-// GetCurrentData 获取当前JSON数据
-// 返回内部维护的JSON数据副本
-//
-// 返回:
-//   - interface{}: 当前JSON数据，如果没有数据则为nil
-func (jm *JSONManager) GetCurrentData() interface{} {
-	return jm.jsonData
-}
-
-// ClearData 清空当前JSON数据
-// 重置内部状态，清除所有已加载的JSON数据
-func (jm *JSONManager) ClearData() {
-	jm.jsonData = nil
-	if jm.uiInstance != nil {
-		jm.uiInstance.UpdateStatus("JSON数据已清空")
-	}
-	log.Println("JSON数据已清空")
-}
-
-// deepCopy 深度复制JSON数据
-// 用于在修改操作中创建数据副本，避免修改原始数据
-//
+// SaveJSONToFile 保存JSON到文件
+// 将JSON字符串保存到指定文件路径，自动创建必要的目录结构
+// 确保文件扩展名为.json，并设置适当的文件权限
 // 参数:
-//   - data: 要复制的数据
+//   - jsonData: JSON字符串
+//   - filePath: 文件路径
 //
 // 返回:
-//   - interface{}: 数据的深拷贝副本
-func (jm *JSONManager) deepCopy(data interface{}) interface{} {
-	// 使用JSON序列化/反序列化实现深度复制
-	jsonData, err := json.Marshal(data)
+//   - error: 操作错误，nil表示成功
+func (jm *JSONManager) SaveJSONToFile(jsonData, filePath string) error {
+	if strings.TrimSpace(jsonData) == "" {
+		return fmt.Errorf("JSON数据不能为空")
+	}
+
+	if filePath == "" {
+		return fmt.Errorf("文件路径不能为空")
+	}
+
+	// 确保文件扩展名
+	if !strings.HasSuffix(strings.ToLower(filePath), ".json") {
+		filePath += ".json"
+	}
+
+	// 创建目录
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("创建目录失败: %v", err)
+	}
+
+	// 更新UI状态，提示用户正在保存文件
+	jm.uiInstance.UpdateStatus("正在保存JSON文件...")
+
+	// 写入文件
+	if err := os.WriteFile(filePath, []byte(jsonData), 0644); err != nil {
+		return fmt.Errorf("保存JSON文件失败: %v", err)
+	}
+
+	// 更新状态
+	jm.uiInstance.UpdateStatus(fmt.Sprintf("成功保存JSON文件: %s", filePath))
+
+	log.Printf("成功保存JSON文件: %s，大小: %d字节", filePath, len(jsonData))
+	return nil
+}
+
+// LoadJSONFromFile 从文件加载JSON
+// 从指定文件路径读取JSON数据，验证格式并格式化输出
+// 自动处理文件不存在和格式错误的情况
+// 参数:
+//   - filePath: 文件路径
+//
+// 返回:
+//   - string: JSON字符串
+//   - error: 操作错误，nil表示成功
+func (jm *JSONManager) LoadJSONFromFile(filePath string) (string, error) {
+	if filePath == "" {
+		return "", fmt.Errorf("文件路径不能为空")
+	}
+
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return "", fmt.Errorf("文件不存在: %s", filePath)
+	}
+
+	// 更新UI状态，提示用户正在加载文件
+	jm.uiInstance.UpdateStatus("正在加载JSON文件...")
+
+	// 读取文件
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		log.Printf("深度复制失败: %v", err)
-		return data // 如果复制失败，返回原始数据
+		return "", fmt.Errorf("读取JSON文件失败: %v", err)
 	}
 
-	var copy interface{}
-	if err := json.Unmarshal(jsonData, &copy); err != nil {
-		log.Printf("深度复制失败: %v", err)
-		return data // 如果复制失败，返回原始数据
+	// 验证JSON格式
+	var jsonData interface{}
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return "", fmt.Errorf("JSON文件格式错误: %v", err)
 	}
 
-	return copy
+	// 美化输出
+	formattedJSON, err := json.MarshalIndent(jsonData, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("格式化JSON失败: %v", err)
+	}
+
+	// 更新状态
+	fileInfo, _ := os.Stat(filePath)
+	jm.uiInstance.UpdateStatus(fmt.Sprintf("成功加载JSON文件: %s，大小: %.2fKB",
+		filepath.Base(filePath), float64(fileInfo.Size())/1024))
+
+	log.Printf("成功加载JSON文件: %s", filePath)
+	return string(formattedJSON), nil
+}
+
+// ValidateJSON 验证JSON格式
+// 检查JSON字符串的格式是否正确，并返回详细的验证结果
+// 支持对象和数组两种基本JSON结构
+// 参数:
+//   - jsonData: JSON字符串
+//
+// 返回:
+//   - bool: 是否有效
+//   - string: 验证结果描述
+func (jm *JSONManager) ValidateJSON(jsonData string) (bool, string) {
+	if strings.TrimSpace(jsonData) == "" {
+		return false, "JSON数据为空"
+	}
+
+	// 尝试解析
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		return false, fmt.Sprintf("JSON格式错误: %v", err)
+	}
+
+	// 检查数据结构
+	result := gjson.Parse(jsonData)
+	if !result.IsObject() && !result.IsArray() {
+		return false, "JSON必须是对象或数组格式"
+	}
+
+	return true, "JSON格式验证通过"
+}
+
+// GetJSONInfo 获取JSON数据信息
+// 分析JSON数据的结构、类型、大小等统计信息
+// 返回包含详细信息的map，便于展示和分析
+// 参数:
+//   - jsonData: JSON字符串
+//
+// 返回:
+//   - map[string]interface{}: JSON信息
+//   - error: 操作错误，nil表示成功
+func (jm *JSONManager) GetJSONInfo(jsonData string) (map[string]interface{}, error) {
+	if strings.TrimSpace(jsonData) == "" {
+		return nil, fmt.Errorf("JSON数据不能为空")
+	}
+
+	// 解析JSON
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		return nil, fmt.Errorf("JSON格式错误: %v", err)
+	}
+
+	info := make(map[string]interface{})
+
+	// 使用gjson获取详细信息
+	result := gjson.Parse(jsonData)
+
+	// 基本信息
+	info["数据类型"] = result.Type.String()
+	info["数据大小"] = len(jsonData)
+	info["字符数"] = len([]rune(jsonData))
+
+	// 统计信息
+	if result.IsObject() {
+		// 获取对象的所有键
+		keys := getObjectKeys(jsonData)
+		info["对象属性数"] = len(keys)
+	} else if result.IsArray() {
+		info["数组元素数"] = result.Array()
+	}
+
+	// 获取示例数据
+	if result.IsObject() {
+		keys := getObjectKeys(jsonData)
+		if len(keys) > 0 {
+			info["前3个属性"] = keys[:min(3, len(keys))]
+		}
+	} else if result.IsArray() && result.Array() != nil {
+		info["数组类型"] = "多种类型"
+		if len(result.Array()) > 0 {
+			info["第一个元素类型"] = result.Array()[0].Type.String()
+		}
+	}
+
+	return info, nil
+}
+
+// min 辅助函数
+// 返回两个整数中的较小值
+// 参数:
+//   - a: 第一个整数
+//   - b: 第二个整数
+//
+// 返回:
+//   - int: 较小的整数值
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// GetDefaultJSON 获取默认的示例JSON数据
+// 返回一个包含常见数据类型的示例JSON，用于演示和测试
+// 包括字符串、数字、数组、嵌套对象等多种数据结构
+// 返回:
+//   - string: 默认JSON数据
+func (jm *JSONManager) GetDefaultJSON() string {
+	// 默认示例JSON数据
+	defaultData := map[string]interface{}{
+		"姓名": "张三",
+		"年龄": 25,
+		"邮箱": "zhangsan@example.com",
+		"技能": []string{
+			"Go语言",
+			"数据库",
+			"Web开发",
+		},
+		"地址": map[string]interface{}{
+			"城市": "北京",
+			"区县": "朝阳区",
+			"街道": "建国路",
+		},
+		"工作": map[string]interface{}{
+			"公司": "科技公司",
+			"职位": "软件工程师",
+			"经验": 3,
+		},
+	}
+
+	jsonData, _ := json.MarshalIndent(defaultData, "", "  ")
+	return string(jsonData)
+}
+
+// getObjectKeys 获取JSON对象的键列表
+// 解析JSON字符串并返回所有顶级键的列表
+// 参数:
+//   - jsonData: JSON字符串
+//
+// 返回:
+//   - []string: 键列表
+func getObjectKeys(jsonData string) []string {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonData), &data); err != nil {
+		return nil
+	}
+
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		keys = append(keys, key)
+	}
+	return keys
 }
