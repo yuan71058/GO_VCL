@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	ui "windows-gui-app/ui"
+	"windows-gui-app/managers"
 
 	"github.com/ying32/govcl/vcl"
 )
@@ -63,6 +64,13 @@ func main() {
 
 	// 初始化VCL应用程序框架，这是使用govcl库的必要步骤
 	vcl.Application.Initialize()
+
+	// 加载应用程序皮肤
+	// 在程序启动时加载皮肤，提供更好的用户界面体验
+	skinManager := managers.NewSkinManager()
+	if !skinManager.LoadDefaultSkin() {
+		log.Println("皮肤加载失败，程序将继续运行但不应用皮肤效果")
+	}
 
 	// 设置应用程序在任务栏上显示主窗口图标
 	// 这使得应用程序在任务栏中有更好的可见性和用户体验
