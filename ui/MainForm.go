@@ -2017,8 +2017,11 @@ func (f *MainForm) applyPanelStyles() {
 // applyButtonStyles 应用按钮样式
 func (f *MainForm) applyButtonStyles() {
 	buttons := []*vcl.TButton{
-		f.BtnImportExcel, f.BtnExcel, f.BtnJSON,
-		f.BtnHTTP, f.BtnDatabase, f.BtnConcurrent, f.BtnClose,
+		f.BtnSaveConfig, f.BtnGetSelections, f.BtnImportExcel,
+		f.BtnImportImage, f.BtnExcel, f.BtnJSON,
+		f.BtnHTTP, f.BtnDatabase, f.BtnConcurrent,
+		f.BtnResizeColumns, f.BtnWebServer, f.BtnTCPServer,
+		f.BtnClose, f.BtnConnectTCP, f.BtnSendTCPData,
 	}
 
 	for _, button := range buttons {
@@ -2027,6 +2030,8 @@ func (f *MainForm) applyButtonStyles() {
 			font := button.Font()
 			font.SetSize(10)
 			font.SetStyle(types.TFontStyles(types.FsBold))
+			// 设置支持emoji的字体，确保emoji图标能够正确显示
+			font.SetName("Segoe UI Emoji")
 
 			// 设置按钮悬停效果
 			button.SetParentFont(false)

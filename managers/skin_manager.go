@@ -16,7 +16,7 @@ type SkinManager struct {
 	// SkinH_DLL 动态链接库句柄
 	// 用于加载和调用SkinH_EL.dll中的函数
 	SkinH_DLL *syscall.LazyDLL
-	
+
 	// 是否已加载皮肤标志
 	// 跟踪皮肤加载状态，避免重复加载
 	isLoaded bool
@@ -43,13 +43,13 @@ func (sm *SkinManager) LoadSkinLibrary() bool {
 
 	// 加载SkinH_EL.dll动态链接库
 	sm.SkinH_DLL = syscall.NewLazyDLL("SkinH_EL.dll")
-	
+
 	// 检查DLL是否加载成功
 	if sm.SkinH_DLL == nil {
 		log.Println("无法加载SkinH_EL.dll")
 		return false
 	}
-	
+
 	log.Println("SkinH_EL.dll加载成功")
 	return true
 }
@@ -58,6 +58,7 @@ func (sm *SkinManager) LoadSkinLibrary() bool {
 // 从指定路径加载皮肤文件，应用到当前应用程序
 // 参数:
 //   - skinPath: 皮肤文件的路径，如果为空则使用默认皮肤
+//
 // 返回是否加载成功
 func (sm *SkinManager) SkinH_Attach(skinPath string) bool {
 	// 检查DLL是否已加载
@@ -84,7 +85,7 @@ func (sm *SkinManager) SkinH_Attach(skinPath string) bool {
 	// 参数1: 皮肤文件路径指针
 	// 参数2: 保留参数，通常为0
 	ret, _, err := proc.Call(uintptr(unsafe.Pointer(skinPathPtr)), 0)
-	
+
 	// 检查返回值，非0表示成功
 	if ret == 0 {
 		log.Printf("加载皮肤失败: %v", err)
@@ -116,7 +117,7 @@ func (sm *SkinManager) SkinH_SetAero() bool {
 	// 调用SkinH_SetAero函数启用AERO效果
 	// 参数: 保留参数，通常为0
 	ret, _, err := proc.Call(0)
-	
+
 	// 检查返回值，非0表示成功
 	if ret == 0 {
 		log.Printf("启用AERO效果失败: %v", err)
@@ -139,6 +140,7 @@ func (sm *SkinManager) SkinH_SetAero() bool {
 //   - nRed: 红色分量 (0-255, 默认值0)
 //   - nGreen: 绿色分量 (0-255, 默认值0)
 //   - nBlue: 蓝色分量 (0-255, 默认值0)
+//
 // 返回是否设置成功
 func (sm *SkinManager) SkinH_AdjustAero(nAlpha, nShwDark, nShwSharp, nShwSize, nX, nY, nRed, nGreen, nBlue int) bool {
 	// 检查DLL是否已加载
@@ -167,7 +169,7 @@ func (sm *SkinManager) SkinH_AdjustAero(nAlpha, nShwDark, nShwSharp, nShwSize, n
 		uintptr(nGreen),
 		uintptr(nBlue),
 	)
-	
+
 	// 检查返回值，非0表示成功
 	if ret == 0 {
 		log.Printf("调整AERO效果参数失败: %v", err)
@@ -175,6 +177,47 @@ func (sm *SkinManager) SkinH_AdjustAero(nAlpha, nShwDark, nShwSharp, nShwSize, n
 	}
 
 	log.Printf("AERO效果参数调整成功")
+	return true
+}
+
+// SetEmojiCompatibleFont 设置支持emoji的字体
+// 在加载皮肤后调用，确保emoji图标能够正确显示
+// 返回是否设置成功
+func (sm *SkinManager) SetEmojiCompatibleFont() bool {
+	// 检查DLL是否已加载
+	if sm.SkinH_DLL == nil {
+		log.Println("皮肤库未加载，请先调用LoadSkinLibrary")
+		return false
+	}
+
+	// 获取SkinH_SetFont函数指针
+	proc := sm.SkinH_DLL.NewProc("SkinH_SetFont")
+	if proc == nil {
+		log.Println("无法获取SkinH_SetFont函数")
+		return false
+	}
+
+	// 尝试设置支持emoji的字体
+	// 在Windows上，"Segoe UI Emoji"字体支持emoji字符
+	fontName, err := syscall.UTF16PtrFromString("Segoe UI Emoji")
+	if err != nil {
+		log.Printf("字体名称转换失败: %v", err)
+		return false
+	}
+
+	// 调用SkinH_SetFont函数设置字体
+	// 参数1: 字体名称指针
+	// 参数2: 字体大小，通常使用0表示默认大小
+	// 参数3: 字体样式，0表示默认样式
+	ret, _, err := proc.Call(uintptr(unsafe.Pointer(fontName)), 0, 0)
+
+	// 检查返回值，非0表示成功
+	if ret == 0 {
+		log.Printf("设置emoji兼容字体失败: %v", err)
+		return false
+	}
+
+	log.Println("emoji兼容字体设置成功")
 	return true
 }
 
@@ -212,6 +255,9 @@ func (sm *SkinManager) LoadDefaultSkin() bool {
 	// 透明度: 200, 亮度: 0, 锐度: 3, 阴影大小: 5
 	// 水平偏移: 0, 垂直偏移: 0, 颜色分量: 0
 	sm.SkinH_AdjustAero(200, 0, 3, 5, 0, 0, 0, 0, 0)
+
+	// 设置支持emoji的字体，确保按钮上的emoji图标能够正确显示
+	sm.SetEmojiCompatibleFont()
 
 	log.Println("默认皮肤加载完成")
 	return true
