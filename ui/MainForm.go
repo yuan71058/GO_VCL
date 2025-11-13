@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"windows-gui-app/interfaces"
@@ -56,6 +58,12 @@ type MainForm struct {
 	EditTaskCount   *vcl.TSpinEdit // 任务数量编辑框 - 用于设置并发测试的任务数
 	LabelThread     *vcl.TLabel    // 线程数量标签 - 线程数量编辑框的说明标签
 	LabelTask       *vcl.TLabel    // 任务数量标签 - 任务数量编辑框的说明标签
+
+	// TCP客户端连接相关
+	EditTCPServerIP   *vcl.TEdit   // TCP服务器IP编辑框 - 用于输入TCP服务器IP地址
+	EditTCPServerPort *vcl.TEdit   // TCP服务器端口编辑框 - 用于输入TCP服务器端口
+	BtnConnectTCP     *vcl.TButton // 连接TCP服务器按钮 - 用于连接到指定的TCP服务器
+	LabelTCPServer    *vcl.TLabel  // TCP服务器标签 - TCP服务器连接配置的说明标签
 
 	// 单选框组件 - 选项配置相关
 	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1
@@ -352,7 +360,7 @@ func (f *MainForm) createButtons() {
 	configPanel.SetAlign(types.AlLeft)
 	configPanel.SetWidth(330) // 增加宽度以容纳多选框
 	configPanel.SetBevelOuter(types.BvNone)
-	configPanel.SetHeight(80) // 增加高度以容纳单选框
+	configPanel.SetHeight(120) // 增加高度以容纳TCP客户端连接配置
 
 	// 创建参数标签和编辑框
 	f.LabelThread = vcl.NewLabel(f.TForm)
@@ -417,6 +425,44 @@ func (f *MainForm) createButtons() {
 	f.CheckBox2.SetLeft(245)
 	f.CheckBox2.SetTop(60)
 	f.CheckBox2.SetWidth(70)
+
+	// 创建TCP客户端连接配置
+	f.LabelTCPServer = vcl.NewLabel(f.TForm)
+	f.LabelTCPServer.SetParent(configPanel)
+	f.LabelTCPServer.SetCaption("TCP服务器:")
+	f.LabelTCPServer.SetLeft(10)
+	f.LabelTCPServer.SetTop(85)
+	f.LabelTCPServer.SetWidth(70)
+
+	f.EditTCPServerIP = vcl.NewEdit(f.TForm)
+	f.EditTCPServerIP.SetParent(configPanel)
+	f.EditTCPServerIP.SetLeft(85)
+	f.EditTCPServerIP.SetTop(83)
+	f.EditTCPServerIP.SetWidth(80)
+	f.EditTCPServerIP.SetText("127.0.0.1")
+
+	f.LabelTCPServer = vcl.NewLabel(f.TForm)
+	f.LabelTCPServer.SetParent(configPanel)
+	f.LabelTCPServer.SetCaption(":")
+	f.LabelTCPServer.SetLeft(170)
+	f.LabelTCPServer.SetTop(85)
+	f.LabelTCPServer.SetWidth(10)
+
+	f.EditTCPServerPort = vcl.NewEdit(f.TForm)
+	f.EditTCPServerPort.SetParent(configPanel)
+	f.EditTCPServerPort.SetLeft(180)
+	f.EditTCPServerPort.SetTop(83)
+	f.EditTCPServerPort.SetWidth(50)
+	f.EditTCPServerPort.SetText("8082")
+
+	f.BtnConnectTCP = vcl.NewButton(f.TForm)
+	f.BtnConnectTCP.SetParent(configPanel)
+	f.BtnConnectTCP.SetCaption("连接TCP")
+	f.BtnConnectTCP.SetLeft(240)
+	f.BtnConnectTCP.SetTop(83)
+	f.BtnConnectTCP.SetWidth(75)
+	f.BtnConnectTCP.SetHeight(22)
+	f.BtnConnectTCP.SetOnClick(f.onConnectTCPClick)
 
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
@@ -1270,7 +1316,7 @@ func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 			f.AddLog("Web服务器已成功停止")
 			f.BtnWebServer.SetCaption("🌐 Web服务器")
 			f.UpdateStatus("Web服务器已停止")
-			
+
 			// 更新表格状态
 			if f.TableData != nil && int(f.TableData.RowCount()) > 5 && int(f.TableData.ColCount()) > 1 {
 				defer func() {
@@ -1292,14 +1338,14 @@ func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 			f.AddLog("Web服务器已成功启动")
 			f.BtnWebServer.SetCaption("⏹️ 停止服务器")
 			f.UpdateStatus("Web服务器运行中")
-			
+
 			// 获取并显示服务器信息
 			serverInfo := f.WebServerManager.GetServerInfo()
 			f.AddLog("服务器信息:")
 			for key, value := range serverInfo {
 				f.AddLog(fmt.Sprintf("  %s: %v", key, value))
 			}
-			
+
 			// 更新表格状态
 			if f.TableData != nil && int(f.TableData.RowCount()) > 5 && int(f.TableData.ColCount()) > 1 {
 				defer func() {
@@ -1338,7 +1384,7 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 			f.AddLog("TCP服务器已成功停止")
 			f.BtnTCPServer.SetCaption("🔌 TCP服务")
 			f.UpdateStatus("TCP服务器已停止")
-			
+
 			// 更新表格状态
 			if f.TableData != nil && int(f.TableData.RowCount()) > 6 && int(f.TableData.ColCount()) > 1 {
 				defer func() {
@@ -1360,14 +1406,14 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 			f.AddLog("TCP服务器已成功启动")
 			f.BtnTCPServer.SetCaption("⏹️ 停止服务")
 			f.UpdateStatus("TCP服务器运行中")
-			
+
 			// 获取并显示服务器信息
 			serverInfo := f.TCPServerManager.GetServerInfo()
 			f.AddLog("服务器信息:")
 			for key, value := range serverInfo {
 				f.AddLog(fmt.Sprintf("  %s: %v", key, value))
 			}
-			
+
 			// 更新表格状态
 			if f.TableData != nil && int(f.TableData.RowCount()) > 6 && int(f.TableData.ColCount()) > 1 {
 				defer func() {
@@ -1383,6 +1429,80 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 
 	f.AddLog("=== TCP服务器操作结束 ===")
 	log.Println("TCP服务器操作完成")
+}
+
+// onConnectTCPClick 连接TCP服务器按钮事件
+func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
+	// 获取用户输入的IP和端口
+	ip := f.EditTCPServerIP.Text()
+	port := f.EditTCPServerPort.Text()
+
+	if ip == "" || port == "" {
+		f.AddLog("错误: 请输入TCP服务器IP和端口")
+		return
+	}
+
+	// 验证端口号是否为数字
+	if _, err := strconv.Atoi(port); err != nil {
+		f.AddLog("错误: 端口号必须是数字")
+		return
+	}
+
+	f.AddLog("=== TCP客户端连接开始 ===")
+	f.AddLog(fmt.Sprintf("正在连接到TCP服务器: %s:%s", ip, port))
+
+	// 使用goroutine异步执行连接操作，避免阻塞UI线程
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("TCP连接异常: %v", r))
+			}
+		}()
+
+		// 创建TCP连接
+		address := fmt.Sprintf("%s:%s", ip, port)
+		conn, err := net.Dial("tcp", address)
+		if err != nil {
+			f.AddLog(fmt.Sprintf("连接TCP服务器失败: %v", err))
+			return
+		}
+		defer conn.Close()
+
+		f.AddLog(fmt.Sprintf("成功连接到TCP服务器: %s", address))
+
+		// 读取服务器的欢迎消息
+		buffer := make([]byte, 1024)
+		n, err := conn.Read(buffer)
+		if err != nil {
+			f.AddLog(fmt.Sprintf("读取服务器消息失败: %v", err))
+			return
+		}
+
+		serverMessage := string(buffer[:n])
+		f.AddLog(fmt.Sprintf("服务器消息: %s", serverMessage))
+
+		// 发送测试消息
+		testMessage := "Hello from TCP Client"
+		_, err = conn.Write([]byte(testMessage))
+		if err != nil {
+			f.AddLog(fmt.Sprintf("发送消息失败: %v", err))
+			return
+		}
+
+		f.AddLog(fmt.Sprintf("已发送消息: %s", testMessage))
+
+		// 读取服务器响应
+		n, err = conn.Read(buffer)
+		if err != nil {
+			f.AddLog(fmt.Sprintf("读取服务器响应失败: %v", err))
+			return
+		}
+
+		serverResponse := string(buffer[:n])
+		f.AddLog(fmt.Sprintf("服务器响应: %s", serverResponse))
+
+		f.AddLog("=== TCP客户端连接结束 ===")
+	}()
 }
 
 // onConcurrentClick 多线程操作按钮事件

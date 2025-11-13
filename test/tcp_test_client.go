@@ -9,15 +9,21 @@ import (
 )
 
 func main() {
+	// 从命令行参数获取服务器地址
+	serverAddr := "localhost:8082"
+	if len(os.Args) > 1 {
+		serverAddr = os.Args[1]
+	}
+
 	// 连接到TCP服务器
-	conn, err := net.Dial("tcp", "localhost:8082")
+	conn, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		fmt.Printf("连接TCP服务器失败: %v\n", err)
 		return
 	}
 	defer conn.Close()
 
-	fmt.Println("已连接到TCP服务器")
+	fmt.Printf("已连接到TCP服务器 (%s)\n", serverAddr)
 
 	// 读取欢迎消息
 	welcomeMsg, err := bufio.NewReader(conn).ReadString('\n')
@@ -28,7 +34,7 @@ func main() {
 	}
 
 	// 发送测试消息
-	testMsg := "Hello TCP Server!"
+	testMsg := "Hello TCP Server from test client!"
 	_, err = conn.Write([]byte(testMsg))
 	if err != nil {
 		fmt.Printf("发送消息失败: %v\n", err)
