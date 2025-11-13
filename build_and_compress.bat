@@ -3,104 +3,104 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo   Windows GUI应用 编译和UPX压缩脚本
+echo   Windows GUI Application Build and UPX Compression Script
 echo ========================================
 echo.
 
-:: 设置变量
+:: Set variables
 set PROJECT_NAME=windows-gui-app
 set OUTPUT_DIR=dist
 set OUTPUT_EXE=%PROJECT_NAME%.exe
 
-:: 清理之前的构建
-echo [1/6] 清理之前的构建文件...
-if exist %OUTPUT_DIR% rmdir /s /q %OUTPUT_DIR%
+:: Clean previous build
+echo [1/6] Cleaning previous build files...
+if exist %OUTPUT_DIR%\%OUTPUT_EXE% del /q %OUTPUT_DIR%\%OUTPUT_EXE%
 if exist %OUTPUT_EXE% del /q %OUTPUT_EXE%
 if exist defaultRes_windows_386.syso del /q defaultRes_windows_386.syso
 
-:: 创建输出目录
-echo [2/6] 创建输出目录...
+:: Create output directory
+echo [2/6] Creating output directory...
 if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
 
-:: 检查windres工具并创建资源文件
-echo [3/6] 检查windres工具并创建资源文件...
+:: Check windres tool and create resource file
+echo [3/6] Checking windres tool and creating resource file...
 where windres >nul 2>&1
 if %errorlevel% equ 0 (
-    echo 创建资源文件...
+    echo Creating resource file...
     windres.exe -i app.rc -o defaultRes_windows_386.syso -F pe-i386
     if %errorlevel% neq 0 (
-        echo 警告: 资源文件创建失败，继续编译但不包含自定义图标
+        echo Warning: Resource file creation failed, continuing compilation without custom icon
     )
 ) else (
-    echo 警告: windres未找到，跳过自定义资源创建
-    echo 提示: 安装MinGW-w64以启用自定义图标和版本信息
+    echo Warning: windres not found, skipping custom resource creation
+    echo Tip: Install MinGW-w64 to enable custom icons and version information
 )
 
-:: 检查Go环境
-echo [4/6] 检查Go环境...
+:: Check Go environment
+echo [4/6] Checking Go environment...
 go version
 if %errorlevel% neq 0 (
-    echo 错误: Go环境未正确配置
+    echo Error: Go environment not properly configured
     pause
     exit /b 1
 )
 
-:: 下载依赖（如果需要）
-echo [5/6] 下载依赖包...
+:: Download dependencies (if needed)
+echo [5/6] Downloading dependency packages...
 go mod download
 if %errorlevel% neq 0 (
-    echo 警告: 依赖下载可能有问题，但继续编译...
+    echo Warning: Dependency download may have issues, but continuing compilation...
 )
 
-:: 编译为Windows GUI应用（无控制台窗口）
-echo [6/6] 编译为Windows GUI应用（无控制台窗口）...
+:: Compile to Windows GUI application (no console window)
+echo [6/6] Compiling to Windows GUI application (no console window)...
 go build -tags tempdll -ldflags "-w -s -H=windowsgui" -o %OUTPUT_DIR%\%OUTPUT_EXE%
 if %errorlevel% neq 0 (
-    echo 编译失败!
+    echo Compilation failed!
     pause
     exit /b 1
 )
 
-:: 检查编译结果
-echo 检查编译结果...
+:: Check compilation result
+echo Checking compilation result...
 if not exist %OUTPUT_DIR%\%OUTPUT_EXE% (
-    echo 错误: 可执行文件未生成
+    echo Error: Executable file not generated
     pause
     exit /b 1
 )
 
-:: 显示文件信息
+:: Display file information
 echo.
 echo ========================================
-echo 编译成功! 
+echo Compilation successful!
 echo ========================================
-echo 可执行文件: %OUTPUT_DIR%\%OUTPUT_EXE%
-echo 文件大小: 
-for %%I in (%OUTPUT_DIR%\%OUTPUT_EXE%) do echo   %%~zI 字节
+echo Executable file: %OUTPUT_DIR%\%OUTPUT_EXE%
+echo File size:
+for %%I in (%OUTPUT_DIR%\%OUTPUT_EXE%) do echo   %%~zI bytes
 echo.
 
-:: 使用UPX压缩可执行文件
+:: Use UPX to compress executable file
 echo ========================================
-echo 使用UPX压缩可执行文件...
+echo Using UPX to compress executable file...
 upx --best --lzma %OUTPUT_DIR%\%OUTPUT_EXE% >nul 2>&1
 if %errorlevel% equ 0 (
-    echo UPX压缩成功!
+    echo UPX compression successful!
     
-    :: 显示压缩后文件大小
-    echo 压缩后文件大小:
-    for %%I in (%OUTPUT_DIR%\%OUTPUT_EXE%) do echo   %%~zI 字节
+    :: Display compressed file size
+    echo Compressed file size:
+    for %%I in (%OUTPUT_DIR%\%OUTPUT_EXE%) do echo   %%~zI bytes
     
     echo.
     echo ========================================
-    echo 压缩完成!
+    echo Compression complete!
     echo ========================================
 ) else (
-    echo UPX压缩失败或未安装UPX，跳过压缩步骤
-    echo 提示: 可以从 https://upx.github.io/ 下载UPX以减小可执行文件大小
+    echo UPX compression failed or UPX not installed, skipping compression step
+    echo Tip: You can download UPX from https://upx.github.io/ to reduce executable file size
 )
 
 echo.
-echo 程序已准备就绪!
-echo 可执行文件位于: %OUTPUT_DIR%\%OUTPUT_EXE%
+echo Program is ready!
+echo Executable file located at: %OUTPUT_DIR%\%OUTPUT_EXE%
 echo.
 pause

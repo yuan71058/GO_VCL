@@ -71,6 +71,12 @@ type MainForm struct {
 	LabelTCPData   *vcl.TLabel  // TCP数据标签 - TCP数据发送的说明标签
 	TCPConn        net.Conn     // TCP连接 - 用于存储与TCP服务器的连接
 
+	// 多功能演示标签
+	LabelMultiFunc *vcl.TLabel // 多功能演示标签 - 显示应用程序名称
+
+	// 信息标签
+	LabelInfo *vcl.TLabel // 信息标签 - 显示应用程序信息
+
 	// 单选框组件 - 选项配置相关
 	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1
 	RadioOption2 *vcl.TRadioButton // 单选框2 - 用于选项2
@@ -84,7 +90,6 @@ type MainForm struct {
 	TableData *vcl.TStringGrid // 数据表格 - 用于展示表格数据
 	ImageBox  *vcl.TImage      // 图片框 - 用于显示用户导入的图片
 	EditInput *vcl.TMemo       // 输入编辑框 - 用于显示日志和操作结果
-	LabelInfo *vcl.TLabel      // 信息标签 - 显示应用程序信息
 
 	// 管理器 - 功能实现相关
 	ExcelManager      *managers.ExcelManager      // Excel管理器 - 处理Excel文件导入导出
@@ -157,16 +162,6 @@ func (f *MainForm) Show() {
 	f.createUI()
 	f.applyUIStyles()
 	f.loadConfig() // 加载配置文件
-
-	// 在应用UI样式后，再次设置emoji兼容字体，确保按钮上的emoji图标能够正确显示
-	// 这是因为皮肤加载可能会覆盖按钮的字体设置
-	skinManager := managers.GetSkinManager()
-	if skinManager != nil && skinManager.IsLoaded() {
-		skinManager.SetEmojiCompatibleFont()
-		// 再次应用按钮样式，确保emoji字体设置生效
-		f.applyButtonStyles()
-	}
-
 	f.TForm.Show()
 }
 
@@ -185,7 +180,7 @@ func (f *MainForm) createUI() {
 	f.PanelButtons = vcl.NewPanel(f.TForm)
 	f.PanelButtons.SetParent(f.PanelMain)
 	f.PanelButtons.SetAlign(types.AlTop)
-	f.PanelButtons.SetHeight(190) // 增加高度以适应4排按钮布局
+	f.PanelButtons.SetHeight(220) // 增加高度以适应5排按钮布局
 	f.PanelButtons.SetBevelOuter(types.BvNone)
 
 	// 创建按钮
@@ -376,7 +371,7 @@ func (f *MainForm) createButtons() {
 	configPanel.SetAlign(types.AlLeft)
 	configPanel.SetWidth(330) // 增加宽度以容纳多选框
 	configPanel.SetBevelOuter(types.BvNone)
-	configPanel.SetHeight(150) // 增加高度以容纳TCP客户端连接配置和数据发送控件
+	configPanel.SetHeight(170) // 增加高度以容纳TCP客户端连接配置、数据发送控件和多功能演示标签
 
 	// 创建参数标签和编辑框
 	f.LabelThread = vcl.NewLabel(f.TForm)
@@ -504,21 +499,33 @@ func (f *MainForm) createButtons() {
 	f.BtnSendTCPData.SetHeight(22)
 	f.BtnSendTCPData.SetOnClick(f.onSendTCPDataClick)
 
+	// 创建多功能演示标签
+	f.LabelMultiFunc = vcl.NewLabel(f.TForm)
+	f.LabelMultiFunc.SetParent(configPanel)
+	f.LabelMultiFunc.SetCaption("多功能演示")
+	f.LabelMultiFunc.SetLeft(10)
+	f.LabelMultiFunc.SetTop(140)
+	f.LabelMultiFunc.SetWidth(100)
+	f.LabelMultiFunc.SetFont(vcl.NewFont())
+	f.LabelMultiFunc.Font().SetName("Microsoft YaHei")
+	f.LabelMultiFunc.Font().SetSize(12)
+	f.LabelMultiFunc.Font().SetColor(0x0000FF) // 红色 (RGB: 0x0000FF)
+
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
 	buttonPanel.SetParent(f.PanelButtons)
 	buttonPanel.SetAlign(types.AlClient)
 	buttonPanel.SetBevelOuter(types.BvNone)
 
-	// 设置按钮面板高度以适应4排按钮的布局
-	buttonPanel.SetHeight(180) // 增加高度以适应4排按钮的布局
+	// 设置按钮面板高度以适应5排按钮的布局
+	buttonPanel.SetHeight(210) // 增加高度以适应5排按钮的布局
 
 	// 创建按钮 - 使用网格布局优化视觉效果
 
 	// 第一行按钮 (3个)
 	f.BtnSaveConfig = vcl.NewButton(f.TForm)
 	f.BtnSaveConfig.SetParent(buttonPanel)
-	f.BtnSaveConfig.SetCaption("💾 保存配置")
+	f.BtnSaveConfig.SetCaption("保存配置")
 	f.BtnSaveConfig.SetWidth(100)
 	f.BtnSaveConfig.SetHeight(30)
 	f.BtnSaveConfig.SetLeft(10)
@@ -527,7 +534,7 @@ func (f *MainForm) createButtons() {
 
 	f.BtnGetSelections = vcl.NewButton(f.TForm)
 	f.BtnGetSelections.SetParent(buttonPanel)
-	f.BtnGetSelections.SetCaption("🔍 获取选中状态")
+	f.BtnGetSelections.SetCaption("获取选中状态")
 	f.BtnGetSelections.SetWidth(100)
 	f.BtnGetSelections.SetHeight(30)
 	f.BtnGetSelections.SetLeft(115)
@@ -536,7 +543,7 @@ func (f *MainForm) createButtons() {
 
 	f.BtnImportExcel = vcl.NewButton(f.TForm)
 	f.BtnImportExcel.SetParent(buttonPanel)
-	f.BtnImportExcel.SetCaption("📊 导入Excel")
+	f.BtnImportExcel.SetCaption("导入Excel")
 	f.BtnImportExcel.SetWidth(100)
 	f.BtnImportExcel.SetHeight(30)
 	f.BtnImportExcel.SetLeft(220)
@@ -546,7 +553,7 @@ func (f *MainForm) createButtons() {
 	// 第二行按钮 (3个)
 	f.BtnImportImage = vcl.NewButton(f.TForm)
 	f.BtnImportImage.SetParent(buttonPanel)
-	f.BtnImportImage.SetCaption("🖼️ 导入图片")
+	f.BtnImportImage.SetCaption("导入图片")
 	f.BtnImportImage.SetWidth(100)
 	f.BtnImportImage.SetHeight(30)
 	f.BtnImportImage.SetLeft(10)
@@ -555,7 +562,7 @@ func (f *MainForm) createButtons() {
 
 	f.BtnExcel = vcl.NewButton(f.TForm)
 	f.BtnExcel.SetParent(buttonPanel)
-	f.BtnExcel.SetCaption("📈 Excel操作")
+	f.BtnExcel.SetCaption("Excel操作")
 	f.BtnExcel.SetWidth(100)
 	f.BtnExcel.SetHeight(30)
 	f.BtnExcel.SetLeft(115)
@@ -564,7 +571,7 @@ func (f *MainForm) createButtons() {
 
 	f.BtnJSON = vcl.NewButton(f.TForm)
 	f.BtnJSON.SetParent(buttonPanel)
-	f.BtnJSON.SetCaption("📋 JSON操作")
+	f.BtnJSON.SetCaption("JSON操作")
 	f.BtnJSON.SetWidth(100)
 	f.BtnJSON.SetHeight(30)
 	f.BtnJSON.SetLeft(220)
@@ -574,7 +581,7 @@ func (f *MainForm) createButtons() {
 	// 第三行按钮 (3个)
 	f.BtnHTTP = vcl.NewButton(f.TForm)
 	f.BtnHTTP.SetParent(buttonPanel)
-	f.BtnHTTP.SetCaption("🌐 HTTP操作")
+	f.BtnHTTP.SetCaption("HTTP操作")
 	f.BtnHTTP.SetWidth(100)
 	f.BtnHTTP.SetHeight(30)
 	f.BtnHTTP.SetLeft(10)
@@ -583,7 +590,7 @@ func (f *MainForm) createButtons() {
 
 	f.BtnDatabase = vcl.NewButton(f.TForm)
 	f.BtnDatabase.SetParent(buttonPanel)
-	f.BtnDatabase.SetCaption("🗄️ 数据库操作")
+	f.BtnDatabase.SetCaption("数据库操作")
 	f.BtnDatabase.SetWidth(100)
 	f.BtnDatabase.SetHeight(30)
 	f.BtnDatabase.SetLeft(115)
@@ -592,18 +599,18 @@ func (f *MainForm) createButtons() {
 
 	f.BtnConcurrent = vcl.NewButton(f.TForm)
 	f.BtnConcurrent.SetParent(buttonPanel)
-	f.BtnConcurrent.SetCaption("⚡ 多线程测试")
+	f.BtnConcurrent.SetCaption("多线程测试")
 	f.BtnConcurrent.SetWidth(100)
 	f.BtnConcurrent.SetHeight(30)
 	f.BtnConcurrent.SetLeft(220)
 	f.BtnConcurrent.SetTop(85)
 	f.BtnConcurrent.SetOnClick(f.onConcurrentClick)
 
-	// 第四行按钮 (4个)
+	// 第四行按钮 (3个)
 	f.BtnResizeColumns = vcl.NewButton(f.TForm)
 	f.BtnResizeColumns.SetParent(buttonPanel)
-	f.BtnResizeColumns.SetCaption("📏 调整列宽")
-	f.BtnResizeColumns.SetWidth(90)
+	f.BtnResizeColumns.SetCaption("调整列宽")
+	f.BtnResizeColumns.SetWidth(100)
 	f.BtnResizeColumns.SetHeight(30)
 	f.BtnResizeColumns.SetLeft(10)
 	f.BtnResizeColumns.SetTop(125)
@@ -611,44 +618,34 @@ func (f *MainForm) createButtons() {
 
 	f.BtnWebServer = vcl.NewButton(f.TForm)
 	f.BtnWebServer.SetParent(buttonPanel)
-	f.BtnWebServer.SetCaption("🌐 Web服务器")
-	f.BtnWebServer.SetWidth(90)
+	f.BtnWebServer.SetCaption("Web服务器")
+	f.BtnWebServer.SetWidth(100)
 	f.BtnWebServer.SetHeight(30)
-	f.BtnWebServer.SetLeft(105)
+	f.BtnWebServer.SetLeft(115)
 	f.BtnWebServer.SetTop(125)
 	f.BtnWebServer.SetOnClick(f.onWebServerClick)
 
 	f.BtnTCPServer = vcl.NewButton(f.TForm)
 	f.BtnTCPServer.SetParent(buttonPanel)
-	f.BtnTCPServer.SetCaption("🔌 TCP服务")
-	f.BtnTCPServer.SetWidth(90)
+	f.BtnTCPServer.SetCaption("TCP服务")
+	f.BtnTCPServer.SetWidth(100)
 	f.BtnTCPServer.SetHeight(30)
-	f.BtnTCPServer.SetLeft(200)
+	f.BtnTCPServer.SetLeft(220)
 	f.BtnTCPServer.SetTop(125)
 	f.BtnTCPServer.SetOnClick(f.onTCPServerClick)
 
+	// 第五行按钮 (1个)
 	f.BtnClose = vcl.NewButton(f.TForm)
 	f.BtnClose.SetParent(buttonPanel)
-	f.BtnClose.SetCaption("❌ 关闭")
-	f.BtnClose.SetWidth(90)
+	f.BtnClose.SetCaption("关闭")
+	f.BtnClose.SetWidth(100)
 	f.BtnClose.SetHeight(30)
-	f.BtnClose.SetLeft(295)
-	f.BtnClose.SetTop(125)
+	f.BtnClose.SetLeft(10)
+	f.BtnClose.SetTop(165)
 	f.BtnClose.SetOnClick(f.onCloseClick)
 
-	// 创建信息标签，放置在关闭按钮后面
-	f.LabelInfo = vcl.NewLabel(f.TForm)
-	f.LabelInfo.SetParent(buttonPanel)
-	f.LabelInfo.SetCaption("GO VCL 多功能演示程序 v1.0")
-	f.LabelInfo.Font().SetSize(14)
-	f.LabelInfo.Font().SetColor(0x0000FF) // 设置字体颜色为红色
-	fontStyle := f.LabelInfo.Font().Style()
-	fontStyle = fontStyle | types.TFontStyles(types.FsBold)
-	f.LabelInfo.Font().SetStyle(fontStyle)
-	f.LabelInfo.SetLeft(400)          // 修改位置到关闭按钮后面
-	f.LabelInfo.SetTop(125)           // 调整位置到第四行
-	f.LabelInfo.SetColor(0xFFFFFF)    // 设置背景色为白色
-	f.LabelInfo.SetTransparent(false) // 确保背景色不透明
+	// 创建皮肤选择按钮
+
 }
 
 // setupEvents 设置事件处理
@@ -2027,11 +2024,8 @@ func (f *MainForm) applyPanelStyles() {
 // applyButtonStyles 应用按钮样式
 func (f *MainForm) applyButtonStyles() {
 	buttons := []*vcl.TButton{
-		f.BtnSaveConfig, f.BtnGetSelections, f.BtnImportExcel,
-		f.BtnImportImage, f.BtnExcel, f.BtnJSON,
-		f.BtnHTTP, f.BtnDatabase, f.BtnConcurrent,
-		f.BtnResizeColumns, f.BtnWebServer, f.BtnTCPServer,
-		f.BtnClose, f.BtnConnectTCP, f.BtnSendTCPData,
+		f.BtnImportExcel, f.BtnExcel, f.BtnJSON,
+		f.BtnHTTP, f.BtnDatabase, f.BtnConcurrent, f.BtnClose,
 	}
 
 	for _, button := range buttons {
@@ -2040,8 +2034,6 @@ func (f *MainForm) applyButtonStyles() {
 			font := button.Font()
 			font.SetSize(10)
 			font.SetStyle(types.TFontStyles(types.FsBold))
-			// 设置支持emoji的字体，确保emoji图标能够正确显示
-			font.SetName("Segoe UI Emoji")
 
 			// 设置按钮悬停效果
 			button.SetParentFont(false)

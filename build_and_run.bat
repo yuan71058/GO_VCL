@@ -14,7 +14,7 @@ set OUTPUT_EXE=%PROJECT_NAME%.exe
 
 :: 清理之前的构建
 echo [1/7] 清理之前的构建文件...
-if exist %OUTPUT_DIR% rmdir /s /q %OUTPUT_DIR%
+if exist %OUTPUT_DIR%\%OUTPUT_EXE% del /q %OUTPUT_DIR%\%OUTPUT_EXE%
 if exist %OUTPUT_EXE% del /q %OUTPUT_EXE%
 if exist defaultRes_windows_386.syso del /q defaultRes_windows_386.syso
 

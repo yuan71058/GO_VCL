@@ -1,6 +1,6 @@
 # 编译脚本使用说明
 
-本项目提供了多种编译脚本，用于编译Windows GUI应用程序并使用UPX进行压缩。
+本项目提供了两种编译脚本，用于编译Windows GUI应用程序并使用UPX进行压缩。
 
 ## 脚本列表
 
@@ -27,70 +27,6 @@
   - 编译应用程序（使用liblcl.dll嵌入）
   - 使用UPX压缩可执行文件
   - 运行压缩后的应用程序
-
-### 3. build_and_compress.ps1
-- **描述**: 完整的编译和压缩流程PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_compress.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 检查Go环境
-  - 下载依赖包
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 显示压缩结果和文件大小
-
-### 4. build_and_run.ps1
-- **描述**: 编译并运行应用程序的PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 检查Go环境
-  - 下载依赖包
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 运行压缩后的应用程序
-
-### 5. build.ps1
-- **描述**: 基础编译PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 显示压缩结果和文件大小
-
-### 6. build_and_run_fixed.ps1
-- **描述**: 修复版编译并运行PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run_fixed.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 运行压缩后的应用程序
-
-### 7. build_and_run_simple.ps1
-- **描述**: 简化版编译并运行PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build_and_run_simple.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 运行压缩后的应用程序
-
-### 8. build_simple.ps1
-- **描述**: 简化版编译PowerShell脚本
-- **用法**: `powershell -ExecutionPolicy Bypass -File build_simple.ps1`
-- **功能**: 
-  - 清理之前的构建文件
-  - 创建资源文件（如果windres可用）
-  - 编译应用程序（使用liblcl.dll嵌入）
-  - 使用UPX压缩可执行文件
-  - 显示压缩结果和压缩率
 
 ## 图标和Manifest支持
 

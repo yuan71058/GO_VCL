@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"syscall"
 
-	ui "windows-gui-app/ui"
 	"windows-gui-app/managers"
+	ui "windows-gui-app/ui"
 
 	"github.com/ying32/govcl/vcl"
 )
@@ -18,11 +18,11 @@ import (
 // 用于调用Windows系统函数来控制控制台窗口的显示和隐藏
 var (
 	// 加载kernel32.dll动态链接库，该库包含Windows系统核心API
-	kernel32         = syscall.NewLazyDLL("kernel32.dll")
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 	// 获取控制台窗口句柄的函数指针
 	getConsoleWindow = kernel32.NewProc("GetConsoleWindow")
 	// 显示或隐藏窗口的函数指针
-	showWindow       = kernel32.NewProc("ShowWindow")
+	showWindow = kernel32.NewProc("ShowWindow")
 )
 
 // hideConsoleWindow 隐藏Windows控制台窗口
@@ -65,17 +65,18 @@ func main() {
 	// 初始化VCL应用程序框架，这是使用govcl库的必要步骤
 	vcl.Application.Initialize()
 
-	// 加载应用程序皮肤
-	// 在程序启动时加载皮肤，提供更好的用户界面体验
-	skinManager := managers.NewSkinManager()
-	if !skinManager.LoadDefaultSkin() {
-		log.Println("皮肤加载失败，程序将继续运行但不应用皮肤效果")
+	// 加载皮肤
+	log.Println("正在加载皮肤...")
+	if managers.InitSkin() {
+		log.Println("皮肤加载成功")
+	} else {
+		log.Println("皮肤加载失败，使用默认样式")
 	}
 
 	// 设置应用程序在任务栏上显示主窗口图标
 	// 这使得应用程序在任务栏中有更好的可见性和用户体验
 	vcl.Application.SetMainFormOnTaskBar(true)
-	
+
 	// 设置应用程序标题，该标题将显示在窗口标题栏和任务栏中
 	vcl.Application.SetTitle("Windows GUI应用")
 

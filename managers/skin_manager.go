@@ -180,53 +180,15 @@ func (sm *SkinManager) SkinH_AdjustAero(nAlpha, nShwDark, nShwSharp, nShwSize, n
 	return true
 }
 
-// SetEmojiCompatibleFont 设置支持emoji的字体
-// 在加载皮肤后调用，确保emoji图标能够正确显示
-// 返回是否设置成功
-func (sm *SkinManager) SetEmojiCompatibleFont() bool {
-	// 检查DLL是否已加载
-	if sm.SkinH_DLL == nil {
-		log.Println("皮肤库未加载，请先调用LoadSkinLibrary")
-		return false
-	}
-
-	// 获取SkinH_SetFont函数指针
-	proc := sm.SkinH_DLL.NewProc("SkinH_SetFont")
-	if proc == nil {
-		log.Println("无法获取SkinH_SetFont函数")
-		return false
-	}
-
-	// 尝试设置支持emoji的字体
-	// 在Windows上，"Segoe UI Emoji"字体支持emoji字符
-	fontName, err := syscall.UTF16PtrFromString("Segoe UI Emoji")
-	if err != nil {
-		log.Printf("字体名称转换失败: %v", err)
-		return false
-	}
-
-	// 调用SkinH_SetFont函数设置字体
-	// 参数1: 字体名称指针
-	// 参数2: 字体大小，通常使用0表示默认大小
-	// 参数3: 字体样式，0表示默认样式
-	ret, _, err := proc.Call(uintptr(unsafe.Pointer(fontName)), 0, 0)
-
-	// 检查返回值，非0表示成功
-	if ret == 0 {
-		log.Printf("设置emoji兼容字体失败: %v", err)
-		return false
-	}
-
-	log.Println("emoji兼容字体设置成功")
-	return true
-}
-
 // LoadDefaultSkin 加载默认皮肤
 // 加载应用程序默认的皮肤文件，通常在程序启动时调用
 // 返回是否加载成功
 func (sm *SkinManager) LoadDefaultSkin() bool {
+	log.Println("开始加载默认皮肤...")
+	
 	// 首先加载皮肤库
 	if !sm.LoadSkinLibrary() {
+		log.Println("加载皮肤库失败")
 		return false
 	}
 
@@ -236,28 +198,50 @@ func (sm *SkinManager) LoadDefaultSkin() bool {
 		log.Printf("获取程序路径失败: %v", err)
 		return false
 	}
+	
+	log.Printf("程序路径: %s", exePath)
 
 	// 构建默认皮肤文件路径
-	// 假设皮肤文件与可执行文件在同一目录下，文件名为skinh.she
-	skinPath := filepath.Join(filepath.Dir(exePath), "skinh.she")
+	// 尝试多个皮肤文件
+	skinDir := filepath.Dir(exePath)
+	skinFiles := []string{"skinh.she", "Aero.she", "MACOS-白色.she", "QQ2008.she"}
+	
+	var skinPath string
+	var foundSkin bool
+	
+	// 检查皮肤文件是否存在
+	for _, skinFile := range skinFiles {
+		skinPath = filepath.Join(skinDir, skinFile)
+		if _, err := os.Stat(skinPath); err == nil {
+			foundSkin = true
+			log.Printf("找到皮肤文件: %s", skinPath)
+			break
+		}
+	}
+	
+	if !foundSkin {
+		log.Println("未找到任何皮肤文件，尝试使用内置皮肤")
+		return sm.SkinH_Attach("")
+	}
+	
+	log.Println("开始加载外部皮肤文件...")
 
 	// 加载皮肤文件
 	if !sm.SkinH_Attach(skinPath) {
-		log.Println("加载默认皮肤失败，尝试使用内置皮肤")
+		log.Printf("加载皮肤文件失败: %s，尝试使用内置皮肤", skinPath)
 		// 如果外部皮肤文件加载失败，尝试使用空字符串加载内置皮肤
 		return sm.SkinH_Attach("")
 	}
 
 	// 启用AERO效果
+	log.Println("启用AERO效果...")
 	sm.SkinH_SetAero()
 
 	// 调整AERO效果参数，使用推荐的默认值
 	// 透明度: 200, 亮度: 0, 锐度: 3, 阴影大小: 5
 	// 水平偏移: 0, 垂直偏移: 0, 颜色分量: 0
+	log.Println("调整AERO效果参数...")
 	sm.SkinH_AdjustAero(200, 0, 3, 5, 0, 0, 0, 0, 0)
-
-	// 设置支持emoji的字体，确保按钮上的emoji图标能够正确显示
-	sm.SetEmojiCompatibleFont()
 
 	log.Println("默认皮肤加载完成")
 	return true
