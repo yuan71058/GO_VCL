@@ -47,6 +47,7 @@ type MainForm struct {
 	BtnConcurrent    *vcl.TButton // 多线程操作按钮 - 用于测试并发任务执行
 	BtnResizeColumns *vcl.TButton // 调整列宽按钮 - 用于调整表格列宽
 	BtnSaveConfig    *vcl.TButton // 保存配置按钮 - 用于保存当前配置到文件
+	BtnWebServer     *vcl.TButton // Web服务器按钮 - 用于启动/停止Web服务器
 	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
 	// 输入组件 - 参数配置相关
@@ -76,6 +77,7 @@ type MainForm struct {
 	HTTPManager       *managers.HTTPManager       // HTTP管理器 - 处理网络请求和文件下载
 	DBManager         *managers.DatabaseManager   // 数据库管理器 - 处理SQLite数据库操作
 	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行
+	WebServerManager  *managers.WebServerManager  // Web服务器管理器 - 处理HTTP和WebSocket服务
 
 	// 时间相关
 	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间
@@ -115,11 +117,15 @@ func NewMainForm() *MainForm {
 	concurrentManager := managers.NewConcurrentManager(nil)
 	concurrentManager.SetUIInstance(form)
 
+	webServerManager := managers.NewWebServerManager(nil)
+	webServerManager.SetUIInstance(form)
+
 	form.ExcelManager = excelManager
 	form.JSONManager = jsonManager
 	form.HTTPManager = httpManager
 	form.DBManager = dbManager
 	form.ConcurrentManager = concurrentManager
+	form.WebServerManager = webServerManager
 
 	return form
 }
@@ -206,7 +212,7 @@ func (f *MainForm) createUI() {
 	f.TableData.SetOptions(gridOptions)
 
 	// 设置行列数
-	f.TableData.SetRowCount(5)
+	f.TableData.SetRowCount(6) // 增加一行以容纳Web服务器
 	f.TableData.SetColCount(3)
 
 	// 设置默认列宽
@@ -238,12 +244,13 @@ func (f *MainForm) createUI() {
 		{"JSON操作", "待测试", "解析/生成JSON数据"},
 		{"HTTP操作", "待测试", "网络请求和下载"},
 		{"数据库操作", "待测试", "SQLite数据库管理"},
+		{"Web服务器", "待测试", "启动/停止HTTP和WebSocket服务"},
 		{"多线程操作", "待测试", "并发任务执行测试"},
 	}
 
 	// 安全地设置所有单元格
 	for r, row := range tableData {
-		if r < 0 || r >= 5 {
+		if r < 0 || r >= 6 { // 更新为6行
 			log.Printf("跳过无效行索引: %d", r)
 			continue
 		}
@@ -289,7 +296,7 @@ func (f *MainForm) createUI() {
 	f.EditInput.SetAlign(types.AlClient)
 	f.EditInput.SetScrollBars(types.SsBoth)
 	f.EditInput.SetReadOnly(true)
-	f.EditInput.SetText("欢迎使用 GO VCL 多功能演示程序！\n\n本程序提供以下功能：\n\n1. Excel操作 - 导入/导出Excel文件\n2. JSON操作 - 解析/生成JSON数据\n3. HTTP操作 - 网络请求和文件下载\n4. 数据库操作 - SQLite数据库管理\n5. 图片导入 - 导入并显示图片\n\n请点击上方按钮开始使用。")
+	f.EditInput.SetText("欢迎使用 GO VCL 多功能演示程序！\n\n本程序提供以下功能：\n\n1. Excel操作 - 导入/导出Excel文件\n2. JSON操作 - 解析/生成JSON数据\n3. HTTP操作 - 网络请求和文件下载\n4. 数据库操作 - SQLite数据库管理\n5. Web服务器 - 启动/停止HTTP和WebSocket服务\n6. 图片导入 - 导入并显示图片\n\n请点击上方按钮开始使用。")
 
 	// 设置事件处理
 	f.setupEvents()
@@ -499,7 +506,7 @@ func (f *MainForm) createButtons() {
 	f.BtnConcurrent.SetTop(85)
 	f.BtnConcurrent.SetOnClick(f.onConcurrentClick)
 
-	// 第四行按钮 (2个)
+	// 第四行按钮 (3个)
 	f.BtnResizeColumns = vcl.NewButton(f.TForm)
 	f.BtnResizeColumns.SetParent(buttonPanel)
 	f.BtnResizeColumns.SetCaption("📏 调整列宽")
@@ -509,12 +516,21 @@ func (f *MainForm) createButtons() {
 	f.BtnResizeColumns.SetTop(125)
 	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick)
 
+	f.BtnWebServer = vcl.NewButton(f.TForm)
+	f.BtnWebServer.SetParent(buttonPanel)
+	f.BtnWebServer.SetCaption("🌐 Web服务器")
+	f.BtnWebServer.SetWidth(100)
+	f.BtnWebServer.SetHeight(30)
+	f.BtnWebServer.SetLeft(115)
+	f.BtnWebServer.SetTop(125)
+	f.BtnWebServer.SetOnClick(f.onWebServerClick)
+
 	f.BtnClose = vcl.NewButton(f.TForm)
 	f.BtnClose.SetParent(buttonPanel)
 	f.BtnClose.SetCaption("❌ 关闭")
 	f.BtnClose.SetWidth(100)
 	f.BtnClose.SetHeight(30)
-	f.BtnClose.SetLeft(115)
+	f.BtnClose.SetLeft(220)
 	f.BtnClose.SetTop(125)
 	f.BtnClose.SetOnClick(f.onCloseClick)
 
@@ -527,7 +543,7 @@ func (f *MainForm) createButtons() {
 	fontStyle := f.LabelInfo.Font().Style()
 	fontStyle = fontStyle | types.TFontStyles(types.FsBold)
 	f.LabelInfo.Font().SetStyle(fontStyle)
-	f.LabelInfo.SetLeft(220)          // 修改位置到关闭按钮后面
+	f.LabelInfo.SetLeft(330)          // 修改位置到关闭按钮后面
 	f.LabelInfo.SetTop(125)           // 调整位置到第四行
 	f.LabelInfo.SetColor(0xFFFFFF)    // 设置背景色为白色
 	f.LabelInfo.SetTransparent(false) // 确保背景色不透明
@@ -1215,6 +1231,74 @@ func (f *MainForm) onResizeColumnsClick(sender vcl.IObject) {
 	f.AddLog("表格列宽已调整，请尝试手动拖动列边界调整宽度")
 	f.AddLog("提示：将鼠标移动到列边界处，当光标变为双向箭头时拖动调整宽度")
 	f.AddLog("=== 表格列宽调整测试结束 ===")
+}
+
+// onWebServerClick Web服务器按钮事件
+func (f *MainForm) onWebServerClick(sender vcl.IObject) {
+	if f.WebServerManager == nil {
+		f.AddLog("Web服务器管理器未初始化")
+		return
+	}
+
+	f.AddLog("=== Web服务器操作开始 ===")
+
+	// 检查服务器当前状态
+	isRunning := f.WebServerManager.IsRunning()
+	if isRunning {
+		// 服务器正在运行，执行停止操作
+		f.AddLog("正在停止Web服务器...")
+		if err := f.WebServerManager.StopServer(); err != nil {
+			f.AddLog(fmt.Sprintf("停止Web服务器失败: %v", err))
+			f.UpdateStatus("停止Web服务器失败")
+		} else {
+			f.AddLog("Web服务器已成功停止")
+			f.BtnWebServer.SetCaption("🌐 Web服务器")
+			f.UpdateStatus("Web服务器已停止")
+			
+			// 更新表格状态
+			if f.TableData != nil && int(f.TableData.RowCount()) > 5 && int(f.TableData.ColCount()) > 1 {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("更新表格状态时发生异常: %v", r)
+					}
+				}()
+				f.TableData.SetCells(1, 5, "已停止") // Web服务器在第6行(索引5)
+				log.Printf("表格状态已更新: (列=1, 行=5) = '已停止'")
+			}
+		}
+	} else {
+		// 服务器未运行，执行启动操作
+		f.AddLog("正在启动Web服务器...")
+		if err := f.WebServerManager.StartServer(); err != nil {
+			f.AddLog(fmt.Sprintf("启动Web服务器失败: %v", err))
+			f.UpdateStatus("启动Web服务器失败")
+		} else {
+			f.AddLog("Web服务器已成功启动")
+			f.BtnWebServer.SetCaption("⏹️ 停止服务器")
+			f.UpdateStatus("Web服务器运行中")
+			
+			// 获取并显示服务器信息
+			serverInfo := f.WebServerManager.GetServerInfo()
+			f.AddLog("服务器信息:")
+			for key, value := range serverInfo {
+				f.AddLog(fmt.Sprintf("  %s: %v", key, value))
+			}
+			
+			// 更新表格状态
+			if f.TableData != nil && int(f.TableData.RowCount()) > 5 && int(f.TableData.ColCount()) > 1 {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("更新表格状态时发生异常: %v", r)
+					}
+				}()
+				f.TableData.SetCells(1, 5, "运行中") // Web服务器在第6行(索引5)
+				log.Printf("表格状态已更新: (列=1, 行=5) = '运行中'")
+			}
+		}
+	}
+
+	f.AddLog("=== Web服务器操作结束 ===")
+	log.Println("Web服务器操作完成")
 }
 
 // onConcurrentClick 多线程操作按钮事件
