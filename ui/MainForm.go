@@ -65,6 +65,12 @@ type MainForm struct {
 	BtnConnectTCP     *vcl.TButton // 连接TCP服务器按钮 - 用于连接到指定的TCP服务器
 	LabelTCPServer    *vcl.TLabel  // TCP服务器标签 - TCP服务器连接配置的说明标签
 
+	// TCP数据发送相关
+	EditTCPData    *vcl.TEdit   // TCP数据编辑框 - 用于输入要发送到TCP服务器的数据
+	BtnSendTCPData *vcl.TButton // 发送TCP数据按钮 - 用于发送数据到TCP服务器
+	LabelTCPData   *vcl.TLabel  // TCP数据标签 - TCP数据发送的说明标签
+	TCPConn        net.Conn     // TCP连接 - 用于存储与TCP服务器的连接
+
 	// 单选框组件 - 选项配置相关
 	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1
 	RadioOption2 *vcl.TRadioButton // 单选框2 - 用于选项2
@@ -360,7 +366,7 @@ func (f *MainForm) createButtons() {
 	configPanel.SetAlign(types.AlLeft)
 	configPanel.SetWidth(330) // 增加宽度以容纳多选框
 	configPanel.SetBevelOuter(types.BvNone)
-	configPanel.SetHeight(120) // 增加高度以容纳TCP客户端连接配置
+	configPanel.SetHeight(150) // 增加高度以容纳TCP客户端连接配置和数据发送控件
 
 	// 创建参数标签和编辑框
 	f.LabelThread = vcl.NewLabel(f.TForm)
@@ -463,6 +469,30 @@ func (f *MainForm) createButtons() {
 	f.BtnConnectTCP.SetWidth(75)
 	f.BtnConnectTCP.SetHeight(22)
 	f.BtnConnectTCP.SetOnClick(f.onConnectTCPClick)
+
+	// 创建TCP数据发送配置
+	f.LabelTCPData = vcl.NewLabel(f.TForm)
+	f.LabelTCPData.SetParent(configPanel)
+	f.LabelTCPData.SetCaption("发送数据:")
+	f.LabelTCPData.SetLeft(10)
+	f.LabelTCPData.SetTop(110)
+	f.LabelTCPData.SetWidth(70)
+
+	f.EditTCPData = vcl.NewEdit(f.TForm)
+	f.EditTCPData.SetParent(configPanel)
+	f.EditTCPData.SetLeft(85)
+	f.EditTCPData.SetTop(108)
+	f.EditTCPData.SetWidth(145)
+	f.EditTCPData.SetText("Hello TCP Server!")
+
+	f.BtnSendTCPData = vcl.NewButton(f.TForm)
+	f.BtnSendTCPData.SetParent(configPanel)
+	f.BtnSendTCPData.SetCaption("发送数据")
+	f.BtnSendTCPData.SetLeft(240)
+	f.BtnSendTCPData.SetTop(108)
+	f.BtnSendTCPData.SetWidth(75)
+	f.BtnSendTCPData.SetHeight(22)
+	f.BtnSendTCPData.SetOnClick(f.onSendTCPDataClick)
 
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
@@ -1433,6 +1463,13 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 
 // onConnectTCPClick 连接TCP服务器按钮事件
 func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
+	// 如果已有连接，先关闭
+	if f.TCPConn != nil {
+		f.TCPConn.Close()
+		f.TCPConn = nil
+		f.AddLog("已关闭之前的TCP连接")
+	}
+
 	// 获取用户输入的IP和端口
 	ip := f.EditTCPServerIP.Text()
 	port := f.EditTCPServerPort.Text()
@@ -1466,8 +1503,9 @@ func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 			f.AddLog(fmt.Sprintf("连接TCP服务器失败: %v", err))
 			return
 		}
-		defer conn.Close()
 
+		// 存储连接到结构体字段
+		f.TCPConn = conn
 		f.AddLog(fmt.Sprintf("成功连接到TCP服务器: %s", address))
 
 		// 读取服务器的欢迎消息
@@ -1502,6 +1540,62 @@ func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 		f.AddLog(fmt.Sprintf("服务器响应: %s", serverResponse))
 
 		f.AddLog("=== TCP客户端连接结束 ===")
+	}()
+}
+
+// onSendTCPDataClick 发送TCP数据按钮事件
+func (f *MainForm) onSendTCPDataClick(sender vcl.IObject) {
+	// 检查是否有TCP连接
+	if f.TCPConn == nil {
+		f.AddLog("错误: 未连接到TCP服务器，请先点击'连接TCP'按钮")
+		return
+	}
+
+	// 获取用户输入的数据
+	data := f.EditTCPData.Text()
+	if data == "" {
+		f.AddLog("错误: 请输入要发送的数据")
+		return
+	}
+
+	f.AddLog("=== 发送TCP数据开始 ===")
+	f.AddLog(fmt.Sprintf("发送数据: %s", data))
+
+	// 使用goroutine异步执行发送操作，避免阻塞UI线程
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.AddLog(fmt.Sprintf("发送TCP数据异常: %v", r))
+			}
+		}()
+
+		// 发送数据
+		_, err := f.TCPConn.Write([]byte(data))
+		if err != nil {
+			f.AddLog(fmt.Sprintf("发送数据失败: %v", err))
+			// 发送失败时关闭连接
+			f.TCPConn.Close()
+			f.TCPConn = nil
+			return
+		}
+
+		f.AddLog("数据发送成功")
+
+		// 读取服务器响应
+		buffer := make([]byte, 1024)
+		n, err := f.TCPConn.Read(buffer)
+		if err != nil {
+			f.AddLog(fmt.Sprintf("读取服务器响应失败: %v", err))
+			// 读取失败时关闭连接
+			f.TCPConn.Close()
+			f.TCPConn = nil
+			return
+		}
+
+		serverResponse := string(buffer[:n])
+		f.AddLog(fmt.Sprintf("服务器响应: %s", serverResponse))
+
+		f.AddLog("=== 发送TCP数据结束 ===")
 	}()
 }
 
