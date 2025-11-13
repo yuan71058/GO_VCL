@@ -157,6 +157,16 @@ func (f *MainForm) Show() {
 	f.createUI()
 	f.applyUIStyles()
 	f.loadConfig() // 加载配置文件
+
+	// 在应用UI样式后，再次设置emoji兼容字体，确保按钮上的emoji图标能够正确显示
+	// 这是因为皮肤加载可能会覆盖按钮的字体设置
+	skinManager := managers.GetSkinManager()
+	if skinManager != nil && skinManager.IsLoaded() {
+		skinManager.SetEmojiCompatibleFont()
+		// 再次应用按钮样式，确保emoji字体设置生效
+		f.applyButtonStyles()
+	}
+
 	f.TForm.Show()
 }
 
