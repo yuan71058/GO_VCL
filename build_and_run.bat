@@ -98,4 +98,4 @@ echo.
 echo 程序已启动! 可以关闭此窗口。
 echo 应用程序将出现在任务栏和桌面上。
 echo.
-pause
+:: pause

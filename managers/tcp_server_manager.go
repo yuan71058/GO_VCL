@@ -1,8 +1,11 @@
 package managers
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
+	"strings"
 	"sync"
 	
 	"windows-gui-app/interfaces"
@@ -179,30 +182,41 @@ func (m *TCPServerManager) handleClient(client *TCPClient) {
 		}
 	}()
 
-	// 发送欢迎消息
+	// 发送欢迎消息 - 确保使用UTF-8编码
 	welcomeMsg := fmt.Sprintf("欢迎连接到TCP服务器! 您的客户端ID: %s\n", client.ID)
-	client.Conn.Write([]byte(welcomeMsg))
+	_, err := client.Conn.Write([]byte(welcomeMsg))
+	if err != nil && m.uiInstance != nil {
+		m.uiInstance.AddLog(fmt.Sprintf("发送欢迎消息失败 (%s): %v", client.ID, err))
+	}
 
-	// 读取客户端数据
-	buffer := make([]byte, 1024)
+	// 使用缓冲读取器提高读取效率
+	reader := bufio.NewReader(client.Conn)
+	
 	for {
-		n, err := client.Conn.Read(buffer)
+		// 读取客户端数据，直到遇到换行符
+		data, err := reader.ReadString('\n')
 		if err != nil {
-			if m.uiInstance != nil {
+			if err != io.EOF && m.uiInstance != nil {
 				m.uiInstance.AddLog(fmt.Sprintf("读取TCP客户端数据失败 (%s): %v", client.ID, err))
 			}
 			break
 		}
 
-		// 处理接收到的数据
-		data := string(buffer[:n])
+		// 处理接收到的数据 - 确保UTF-8编码处理
+		// 去除可能的换行符和回车符
+		data = strings.TrimSpace(data)
+		
 		if m.uiInstance != nil {
 			m.uiInstance.AddLog(fmt.Sprintf("收到TCP客户端消息 (%s): %s", client.ID, data))
 		}
 
-		// 发送响应
+		// 发送响应 - 确保使用UTF-8编码
 		response := fmt.Sprintf("服务器收到消息: %s\n", data)
-		client.Conn.Write([]byte(response))
+		_, err = client.Conn.Write([]byte(response))
+		if err != nil && m.uiInstance != nil {
+			m.uiInstance.AddLog(fmt.Sprintf("发送响应失败 (%s): %v", client.ID, err))
+			break
+		}
 	}
 }
 
@@ -256,7 +270,11 @@ func (m *TCPServerManager) BroadcastMessage(message string) error {
 
 	for _, client := range m.clients {
 		if client.Active && client.Conn != nil {
-			_, err := client.Conn.Write([]byte(message + "\n"))
+			// 确保消息以换行符结尾，并使用UTF-8编码
+			if !strings.HasSuffix(message, "\n") {
+				message = message + "\n"
+			}
+			_, err := client.Conn.Write([]byte(message))
 			if err != nil {
 				if m.uiInstance != nil {
 					m.uiInstance.AddLog(fmt.Sprintf("向TCP客户端发送消息失败 (%s): %v", client.ID, err))
@@ -286,7 +304,11 @@ func (m *TCPServerManager) SendMessageToClient(clientID, message string) error {
 		return fmt.Errorf("客户端连接已断开: %s", clientID)
 	}
 
-	_, err := client.Conn.Write([]byte(message + "\n"))
+	// 确保消息以换行符结尾，并使用UTF-8编码
+	if !strings.HasSuffix(message, "\n") {
+		message = message + "\n"
+	}
+	_, err := client.Conn.Write([]byte(message))
 	if err != nil {
 		return fmt.Errorf("向客户端发送消息失败 (%s): %v", clientID, err)
 	}

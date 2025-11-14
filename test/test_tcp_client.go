@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -23,10 +24,12 @@ func TestTCPClient() {
 	if err != nil {
 		fmt.Printf("读取欢迎消息失败: %v\n", err)
 	} else {
-		fmt.Printf("服务器欢迎消息: %s", welcomeMsg)
+		// 确保UTF-8编码处理
+		welcomeMsg = strings.TrimSpace(welcomeMsg)
+		fmt.Printf("服务器欢迎消息: %s\n", welcomeMsg)
 	}
 
-	// 发送测试消息
+	// 发送测试消息 - 确保UTF-8编码
 	testMsg := "Hello TCP Server!"
 	_, err = conn.Write([]byte(testMsg))
 	if err != nil {
@@ -40,7 +43,9 @@ func TestTCPClient() {
 	if err != nil {
 		fmt.Printf("读取服务器响应失败: %v\n", err)
 	} else {
-		fmt.Printf("服务器响应: %s", response)
+		// 确保UTF-8编码处理
+		response = strings.TrimSpace(response)
+		fmt.Printf("服务器响应: %s\n", response)
 	}
 
 	// 等待一段时间，然后断开连接

@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"windows-gui-app/interfaces"
@@ -21,47 +22,69 @@ import (
 
 // MainForm 主窗口结构体
 // 封装了主窗口的所有UI组件和管理器实例，负责界面展示和用户交互
+//
+// 该结构体采用组合模式，通过嵌入*vcl.TForm继承表单的基本功能，
+// 并添加了丰富的UI组件和管理器实例，实现了一个功能完整的多功能演示程序。
+//
+// 主要功能模块包括：
+// 1. Excel文件导入导出操作
+// 2. JSON数据解析与生成
+// 3. HTTP网络请求与文件下载
+// 4. SQLite数据库操作
+// 5. 多线程并发任务执行
+// 6. Web服务器和TCP服务器
+// 7. 图片显示与处理
+// 8. 配置文件保存与加载
+//
+// 界面布局采用分区设计：
+// - 顶部：主菜单栏
+// - 中上部：功能按钮和参数配置区域
+// - 中部：数据表格和图片显示区域
+// - 中下部：日志和操作结果显示区域
+// - 底部：状态栏
+//
+// 所有UI组件都采用现代化样式设计，支持主题切换和自定义样式。
 type MainForm struct {
 	*vcl.TForm // 嵌入VCL表单基类，继承表单的基本功能
 
 	// UI组件 - 界面布局相关
-	PanelMain    *vcl.TPanel // 主面板 - 作为所有UI组件的容器
-	PanelButtons *vcl.TPanel // 按钮面板 - 包含所有功能按钮和参数配置
-	PanelStatus  *vcl.TPanel // 状态面板 - 包含状态栏
-	PanelTable   *vcl.TPanel // 表格面板 - 包含数据表格和输入编辑框
+	PanelMain    *vcl.TPanel // 主面板 - 作为所有UI组件的容器，采用客户端对齐方式填充整个窗口
+	PanelButtons *vcl.TPanel // 按钮面板 - 包含所有功能按钮和参数配置，位于窗口顶部
+	PanelStatus  *vcl.TPanel // 状态面板 - 包含状态栏，位于窗口底部
+	PanelTable   *vcl.TPanel // 表格面板 - 包含数据表格和输入编辑框，位于窗口中部
 
 	// 菜单组件 - 功能操作相关
-	MainMenu      *vcl.TMainMenu // 主菜单栏
-	FileMenu      *vcl.TMenuItem // 文件菜单
-	EditMenu      *vcl.TMenuItem // 编辑菜单
-	ToolsMenu     *vcl.TMenuItem // 工具菜单
-	HelpMenu      *vcl.TMenuItem // 帮助菜单
-	ClearEditItem *vcl.TMenuItem // 清空编辑框菜单项
+	MainMenu      *vcl.TMainMenu // 主菜单栏 - 包含文件、编辑、工具和帮助等子菜单
+	FileMenu      *vcl.TMenuItem // 文件菜单 - 提供文件操作相关功能
+	EditMenu      *vcl.TMenuItem // 编辑菜单 - 提供编辑操作相关功能
+	ToolsMenu     *vcl.TMenuItem // 工具菜单 - 提供工具操作相关功能
+	HelpMenu      *vcl.TMenuItem // 帮助菜单 - 提供帮助和关于信息
+	ClearEditItem *vcl.TMenuItem // 清空编辑框菜单项 - 用于清空日志和操作结果
 
 	// 按钮组件 - 功能操作相关
-	BtnGetSelections *vcl.TButton // 获取选中状态按钮 - 用于获取单选框和多选框的选中状态
-	BtnImportExcel   *vcl.TButton // 导入Excel按钮 - 用于导入外部Excel文件
-	BtnImportImage   *vcl.TButton // 导入图片按钮 - 用于导入图片文件
-	BtnExcel         *vcl.TButton // Excel操作按钮 - 用于测试Excel相关功能
-	BtnJSON          *vcl.TButton // JSON操作按钮 - 用于测试JSON处理功能
-	BtnHTTP          *vcl.TButton // HTTP操作按钮 - 用于测试网络请求功能
-	BtnDatabase      *vcl.TButton // 数据库操作按钮 - 用于测试数据库功能
-	BtnConcurrent    *vcl.TButton // 多线程操作按钮 - 用于测试并发任务执行
-	BtnResizeColumns *vcl.TButton // 调整列宽按钮 - 用于调整表格列宽
+	BtnGetSelections *vcl.TButton // 获取选中状态按钮 - 用于获取单选框和多选框的选中状态并显示在日志中
+	BtnImportExcel   *vcl.TButton // 导入Excel按钮 - 用于导入外部Excel文件到数据表格
+	BtnImportImage   *vcl.TButton // 导入图片按钮 - 用于选择并显示图片文件
+	BtnExcel         *vcl.TButton // Excel操作按钮 - 用于测试Excel相关功能，如创建、读取和转换
+	BtnJSON          *vcl.TButton // JSON操作按钮 - 用于测试JSON处理功能，如解析、生成和格式验证
+	BtnHTTP          *vcl.TButton // HTTP操作按钮 - 用于测试网络请求功能，如GET、POST请求和文件下载
+	BtnDatabase      *vcl.TButton // 数据库操作按钮 - 用于测试数据库功能，如创建表、插入和查询数据
+	BtnConcurrent    *vcl.TButton // 多线程操作按钮 - 用于测试并发任务执行，如HTTP、计算、I/O和混合任务
+	BtnResizeColumns *vcl.TButton // 调整列宽按钮 - 用于自动调整表格列宽以适应内容
 	BtnSaveConfig    *vcl.TButton // 保存配置按钮 - 用于保存当前配置到文件
 	BtnWebServer     *vcl.TButton // Web服务器按钮 - 用于启动/停止Web服务器
 	BtnTCPServer     *vcl.TButton // TCP服务器按钮 - 用于启动/停止TCP服务
 	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
 	// 输入组件 - 参数配置相关
-	EditThreadCount *vcl.TSpinEdit // 线程数量编辑框 - 用于设置并发测试的线程数
-	EditTaskCount   *vcl.TSpinEdit // 任务数量编辑框 - 用于设置并发测试的任务数
+	EditThreadCount *vcl.TSpinEdit // 线程数量编辑框 - 用于设置并发测试的线程数，范围1-100
+	EditTaskCount   *vcl.TSpinEdit // 任务数量编辑框 - 用于设置并发测试的任务数，范围1-1000
 	LabelThread     *vcl.TLabel    // 线程数量标签 - 线程数量编辑框的说明标签
 	LabelTask       *vcl.TLabel    // 任务数量标签 - 任务数量编辑框的说明标签
 
 	// TCP客户端连接相关
-	EditTCPServerIP   *vcl.TEdit   // TCP服务器IP编辑框 - 用于输入TCP服务器IP地址
-	EditTCPServerPort *vcl.TEdit   // TCP服务器端口编辑框 - 用于输入TCP服务器端口
+	EditTCPServerIP   *vcl.TEdit   // TCP服务器IP编辑框 - 用于输入TCP服务器IP地址，默认为127.0.0.1
+	EditTCPServerPort *vcl.TEdit   // TCP服务器端口编辑框 - 用于输入TCP服务器端口，默认为8080
 	BtnConnectTCP     *vcl.TButton // 连接TCP服务器按钮 - 用于连接到指定的TCP服务器
 	LabelTCPServer    *vcl.TLabel  // TCP服务器标签 - TCP服务器连接配置的说明标签
 
@@ -78,72 +101,88 @@ type MainForm struct {
 	LabelInfo *vcl.TLabel // 信息标签 - 显示应用程序信息
 
 	// 单选框组件 - 选项配置相关
-	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1
-	RadioOption2 *vcl.TRadioButton // 单选框2 - 用于选项2
+	RadioOption1 *vcl.TRadioButton // 单选框1 - 用于选项1，与RadioOption2互斥
+	RadioOption2 *vcl.TRadioButton // 单选框2 - 用于选项2，与RadioOption1互斥
 
 	// 多选框组件 - 选项配置相关
-	CheckBox1 *vcl.TCheckBox // 多选框1 - 用于选项1
-	CheckBox2 *vcl.TCheckBox // 多选框2 - 用于选项2
+	CheckBox1 *vcl.TCheckBox // 多选框1 - 用于选项1，可独立选择
+	CheckBox2 *vcl.TCheckBox // 多选框2 - 用于选项2，可独立选择
 
 	// 状态和显示组件 - 数据展示相关
-	StatusBar *vcl.TStatusBar  // 状态栏 - 显示应用程序当前状态
-	TableData *vcl.TStringGrid // 数据表格 - 用于展示表格数据
-	ImageBox  *vcl.TImage      // 图片框 - 用于显示用户导入的图片
-	EditInput *vcl.TMemo       // 输入编辑框 - 用于显示日志和操作结果
+	StatusBar *vcl.TStatusBar  // 状态栏 - 显示应用程序当前状态和版本信息
+	TableData *vcl.TStringGrid // 数据表格 - 用于展示表格数据，支持列宽调整和单元格编辑
+	ImageBox  *vcl.TImage      // 图片框 - 用于显示用户导入的图片，支持多种图片格式
+	EditInput *vcl.TMemo       // 输入编辑框 - 用于显示日志和操作结果，支持自动滚动
 
 	// 管理器 - 功能实现相关
-	ExcelManager      *managers.ExcelManager      // Excel管理器 - 处理Excel文件导入导出
-	JSONManager       *managers.JSONManager       // JSON管理器 - 处理JSON数据解析生成
-	HTTPManager       *managers.HTTPManager       // HTTP管理器 - 处理网络请求和文件下载
-	DBManager         *managers.DatabaseManager   // 数据库管理器 - 处理SQLite数据库操作
-	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行
+	ExcelManager      *managers.ExcelManager      // Excel管理器 - 处理Excel文件导入导出，支持多种格式
+	JSONManager       *managers.JSONManager       // JSON管理器 - 处理JSON数据解析生成，支持格式验证和路径查询
+	HTTPManager       *managers.HTTPManager       // HTTP管理器 - 处理网络请求和文件下载，支持多种请求方式
+	DBManager         *managers.DatabaseManager   // 数据库管理器 - 处理SQLite数据库操作，支持CRUD和事务
+	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行，支持多种并发模式
 	WebServerManager  *managers.WebServerManager  // Web服务器管理器 - 处理HTTP和WebSocket服务
-	TCPServerManager  *managers.TCPServerManager  // TCP服务器管理器 - 处理TCP服务
+	TCPServerManager  *managers.TCPServerManager  // TCP服务器管理器 - 处理TCP服务，支持多客户端连接
 
 	// 时间相关
-	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间
+	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间，防止频繁更新
 }
 
 // NewMainForm 创建新的主窗口实例
-// 返回一个初始化完成的MainForm指针，包含所有必要的管理器实例
-// 该函数负责创建窗口基础结构、初始化管理器并设置基本属性
+//
+// 返回值:
+//
+//	*MainForm: 初始化完成的MainForm指针，包含所有必要的管理器实例
+//
+// 功能说明:
+//  1. 创建MainForm结构体实例并初始化时间戳
+//  2. 创建VCL窗口并设置基本属性（标题、大小、位置等）
+//  3. 设置窗口事件处理函数（关闭和显示事件）
+//  4. 创建并初始化所有管理器实例，避免循环引用问题
+//  5. 将管理器实例关联到MainForm
+//  6. 返回完全初始化的MainForm实例
+//
+// 注意事项:
+//   - 管理器初始化时先创建nil实例，再设置UI实例，避免循环引用
+//   - 窗口大小设置为1024x568像素，位置居中
+//   - 窗口标题设置为"GO VCL 多功能演示程序"
 func NewMainForm() *MainForm {
 	form := &MainForm{
-		lastUpdate: time.Now(),
+		lastUpdate: time.Now(), // 初始化最后更新时间为当前时间
 	}
 
-	// 创建窗口
+	// 创建VCL窗口
 	form.TForm = vcl.Application.CreateForm()
-	form.TForm.SetCaption("GO VCL 多功能演示程序")
-	form.TForm.SetWidth(1024)
-	form.TForm.SetHeight(568)
-	form.TForm.SetPosition(types.PoScreenCenter)
-	form.TForm.SetOnClose(form.onClose)
-	form.TForm.SetOnShow(form.onShow)
+	form.TForm.SetCaption("GO VCL 多功能演示程序")      // 设置窗口标题
+	form.TForm.SetWidth(1024)                    // 设置窗口宽度为1024像素
+	form.TForm.SetHeight(568)                    // 设置窗口高度为568像素
+	form.TForm.SetPosition(types.PoScreenCenter) // 设置窗口位置为屏幕中央
+	form.TForm.SetOnClose(form.onClose)          // 设置窗口关闭事件处理函数
+	form.TForm.SetOnShow(form.onShow)            // 设置窗口显示事件处理函数
 
 	// 初始化管理器（注意：这里需要小心循环引用）
 	// 先创建管理器并设置UI实例
-	excelManager := managers.NewExcelManager(nil)
-	excelManager.SetUIInstance(form)
+	excelManager := managers.NewExcelManager(nil) // 创建Excel管理器（不关联UI）
+	excelManager.SetUIInstance(form)              // 设置UI实例为当前窗口
 
-	jsonManager := managers.NewJSONManager(nil)
-	jsonManager.SetUIInstance(form)
+	jsonManager := managers.NewJSONManager(nil) // 创建JSON管理器（不关联UI）
+	jsonManager.SetUIInstance(form)             // 设置UI实例为当前窗口
 
-	httpManager := managers.NewHTTPManager(nil)
-	httpManager.SetUIInstance(form)
+	httpManager := managers.NewHTTPManager(nil) // 创建HTTP管理器（不关联UI）
+	httpManager.SetUIInstance(form)             // 设置UI实例为当前窗口
 
-	dbManager := managers.NewDatabaseManager(nil)
-	dbManager.SetUIInstance(form)
+	dbManager := managers.NewDatabaseManager(nil) // 创建数据库管理器（不关联UI）
+	dbManager.SetUIInstance(form)                 // 设置UI实例为当前窗口
 
-	concurrentManager := managers.NewConcurrentManager(nil)
-	concurrentManager.SetUIInstance(form)
+	concurrentManager := managers.NewConcurrentManager(nil) // 创建并发管理器（不关联UI）
+	concurrentManager.SetUIInstance(form)                   // 设置UI实例为当前窗口
 
-	webServerManager := managers.NewWebServerManager(nil)
-	webServerManager.SetUIInstance(form)
+	webServerManager := managers.NewWebServerManager(nil) // 创建Web服务器管理器（不关联UI）
+	webServerManager.SetUIInstance(form)                  // 设置UI实例为当前窗口
 
-	tcpServerManager := managers.NewTCPServerManager(nil)
-	tcpServerManager.SetUIInstance(form)
+	tcpServerManager := managers.NewTCPServerManager(nil) // 创建TCP服务器管理器（不关联UI）
+	tcpServerManager.SetUIInstance(form)                  // 设置UI实例为当前窗口
 
+	// 将管理器实例关联到MainForm
 	form.ExcelManager = excelManager
 	form.JSONManager = jsonManager
 	form.HTTPManager = httpManager
@@ -156,103 +195,139 @@ func NewMainForm() *MainForm {
 }
 
 // Show 显示窗口
-// 该方法负责创建用户界面、应用样式并显示窗口
-// 在调用此方法前，窗口的所有组件和管理器应该已经初始化完成
+//
+// 功能说明:
+//  1. 创建用户界面组件（菜单、面板、按钮、表格等）
+//  2. 应用UI样式设置（字体、颜色、边框等）
+//  3. 加载配置文件（从app_config.json读取配置并应用到界面）
+//  4. 显示窗口到屏幕上
+//
+// 调用顺序:
+//
+//	createUI -> applyUIStyles -> loadConfig -> TForm.Show
+//
+// 注意事项:
+//   - 必须在所有管理器初始化完成后调用
+//   - 界面创建过程会设置所有组件的布局和事件处理
+//   - 配置加载会恢复用户上次保存的设置
 func (f *MainForm) Show() {
-	f.createUI()
-	f.applyUIStyles()
-	f.loadConfig() // 加载配置文件
-	f.TForm.Show()
+	f.createUI()      // 创建用户界面组件
+	f.applyUIStyles() // 应用UI样式设置
+	f.loadConfig()    // 加载配置文件
+	f.TForm.Show()    // 显示窗口
 }
 
 // createUI 创建用户界面
+//
+// 功能说明:
+//  1. 创建主菜单栏和菜单项
+//  2. 创建主面板布局（按钮面板、状态面板、表格面板）
+//  3. 创建数据表格并初始化表格数据和选项
+//  4. 创建图片框和输入编辑框
+//  5. 设置事件处理函数
+//
+// 布局结构:
+//
+//	主窗口
+//	├── 主菜单栏
+//	└── 主面板 (AlClient)
+//	    ├── 按钮面板 (AlTop, 高度220px)
+//	    ├── 表格面板 (AlClient)
+//	    │   ├── 左侧面板 (AlLeft, 宽度600px)
+//	    │   │   └── 数据表格 (AlClient)
+//	    │   └── 右侧面板 (AlClient)
+//	    │       ├── 图片框容器 (AlTop, 高度200px)
+//	    │       │   └── 图片框 (AlClient)
+//	    │       └── 输入编辑框 (AlClient)
+//	    └── 状态面板 (AlBottom, 高度30px)
+//	        └── 状态栏 (AlClient)
+//
+// 注意事项:
+//   - 表格初始化设置了多种选项，支持列宽调整、行选择等功能
+//   - 使用defer和recover捕获表格初始化中的panic
+//   - 表格数据设置时进行索引范围检查，防止越界
 func (f *MainForm) createUI() {
 	// 创建主菜单
 	f.createMainMenu()
 
-	// 创建主面板
+	// 创建主面板 - 作为所有UI组件的容器
 	f.PanelMain = vcl.NewPanel(f.TForm)
 	f.PanelMain.SetParent(f.TForm)
-	f.PanelMain.SetAlign(types.AlClient)
-	f.PanelMain.SetBevelOuter(types.BvNone)
+	f.PanelMain.SetAlign(types.AlClient)    // 客户端对齐，填充整个窗口
+	f.PanelMain.SetBevelOuter(types.BvNone) // 无边框
 
-	// 创建按钮面板
+	// 创建按钮面板 - 位于窗口顶部
 	f.PanelButtons = vcl.NewPanel(f.TForm)
 	f.PanelButtons.SetParent(f.PanelMain)
-	f.PanelButtons.SetAlign(types.AlTop)
-	f.PanelButtons.SetHeight(220) // 增加高度以适应5排按钮布局
-	f.PanelButtons.SetBevelOuter(types.BvNone)
+	f.PanelButtons.SetAlign(types.AlTop)       // 顶部对齐
+	f.PanelButtons.SetHeight(220)              // 设置高度为220像素，适应5排按钮布局
+	f.PanelButtons.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建按钮
 	f.createButtons()
 
-	// 创建状态面板
+	// 创建状态面板 - 位于窗口底部
 	f.PanelStatus = vcl.NewPanel(f.TForm)
 	f.PanelStatus.SetParent(f.PanelMain)
-	f.PanelStatus.SetAlign(types.AlBottom)
-	f.PanelStatus.SetHeight(30)
-	f.PanelStatus.SetBevelOuter(types.BvNone)
+	f.PanelStatus.SetAlign(types.AlBottom)    // 底部对齐
+	f.PanelStatus.SetHeight(30)               // 设置高度为30像素
+	f.PanelStatus.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建状态栏
 	f.StatusBar = vcl.NewStatusBar(f.TForm)
 	f.StatusBar.SetParent(f.PanelStatus)
-	f.StatusBar.SetAlign(types.AlClient)
-	// f.StatusBar.SetTextBuf("就绪")
-	// f.StatusBar.Show()
+	f.StatusBar.SetAlign(types.AlClient) // 客户端对齐，填充状态面板
 
-	// f.StatusBar.Panels().Add()
-	// f.StatusBar.Panels().Items(0).SetText("就绪")
-
-	// 创建表格面板
+	// 创建表格面板 - 位于窗口中部
 	f.PanelTable = vcl.NewPanel(f.TForm)
 	f.PanelTable.SetParent(f.PanelMain)
-	f.PanelTable.SetAlign(types.AlClient)
-	f.PanelTable.SetBevelOuter(types.BvNone)
+	f.PanelTable.SetAlign(types.AlClient)    // 客户端对齐，填充剩余空间
+	f.PanelTable.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建左侧面板，包含数据表格
 	leftPanel := vcl.NewPanel(f.TForm)
 	leftPanel.SetParent(f.PanelTable)
-	leftPanel.SetAlign(types.AlLeft)
-	leftPanel.SetWidth(600)
-	leftPanel.SetBevelOuter(types.BvNone)
+	leftPanel.SetAlign(types.AlLeft)      // 左侧对齐
+	leftPanel.SetWidth(600)               // 设置宽度为600像素
+	leftPanel.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建数据表格（修复索引越界问题）
 	f.TableData = vcl.NewStringGrid(f.TForm)
 	f.TableData.SetParent(leftPanel)
-	f.TableData.SetAlign(types.AlClient)
+	f.TableData.SetAlign(types.AlClient) // 客户端对齐，填充左侧面板
 
 	// 首先设置固定行列
-	f.TableData.SetFixedRows(1)
+	f.TableData.SetFixedRows(1) // 设置固定行数为1（标题行）
 	f.TableData.SetFixedCols(0) // 设置为0，允许调整所有列
 
 	// 设置表格选项，确保支持列宽调整
-	gridOptions := types.TGridOptions(0) // 从零开始设置选项
-	gridOptions = gridOptions | types.TGridOptions(types.GoRowSelect) |
-		types.TGridOptions(types.GoColSizing) |
-		types.TGridOptions(types.GoThumbTracking) |
-		types.TGridOptions(types.GoColMoving) |
-		types.TGridOptions(types.GoTabs) |
-		types.TGridOptions(types.GoRowMoving) |
-		types.TGridOptions(types.GoDrawFocusSelected)
+	gridOptions := types.TGridOptions(0)                                // 从零开始设置选项
+	gridOptions = gridOptions | types.TGridOptions(types.GoRowSelect) | // 行选择
+		types.TGridOptions(types.GoColSizing) | // 列宽调整
+		types.TGridOptions(types.GoThumbTracking) | // 拖动跟踪
+		types.TGridOptions(types.GoColMoving) | // 列移动
+		types.TGridOptions(types.GoTabs) | // Tab键导航
+		types.TGridOptions(types.GoRowMoving) | // 行移动
+		types.TGridOptions(types.GoDrawFocusSelected) // 绘制选中焦点
 	f.TableData.SetOptions(gridOptions)
 
 	// 设置行列数
-	f.TableData.SetRowCount(7) // 增加一行以容纳TCP服务器
-	f.TableData.SetColCount(3)
+	f.TableData.SetRowCount(7) // 设置行数为7行（增加一行以容纳TCP服务器）
+	f.TableData.SetColCount(3) // 设置列数为3列
 
 	// 设置默认列宽
-	f.TableData.SetDefaultColWidth(100)
+	f.TableData.SetDefaultColWidth(100) // 设置默认列宽为100像素
 
 	// 再次设置固定行列，确保设置生效
-	f.TableData.SetFixedRows(1)
-	f.TableData.SetFixedCols(0)
+	f.TableData.SetFixedRows(1) // 再次设置固定行数
+	f.TableData.SetFixedCols(0) // 再次设置固定列数
 
 	log.Printf("表格初始化选项已设置: %v", gridOptions)
 
 	// 设置初始列宽
-	f.TableData.SetColWidths(0, 100) // 第一列宽度
-	f.TableData.SetColWidths(1, 80)  // 第二列宽度
-	f.TableData.SetColWidths(2, 420) // 第三列宽度
+	f.TableData.SetColWidths(0, 100) // 第一列宽度为100像素
+	f.TableData.SetColWidths(1, 80)  // 第二列宽度为80像素
+	f.TableData.SetColWidths(2, 420) // 第三列宽度为420像素
 
 	// 统一使用列, 行的参数顺序添加表格数据
 	// 确保每次调用都在有效范围内
@@ -298,30 +373,30 @@ func (f *MainForm) createUI() {
 	// 创建右侧面板，包含图片框和输入编辑框
 	rightPanel := vcl.NewPanel(f.TForm)
 	rightPanel.SetParent(f.PanelTable)
-	rightPanel.SetAlign(types.AlClient)
-	rightPanel.SetBevelOuter(types.BvNone)
+	rightPanel.SetAlign(types.AlClient)    // 客户端对齐，填充剩余空间
+	rightPanel.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建图片框容器面板，用于显示边框
 	imagePanel := vcl.NewPanel(f.TForm)
 	imagePanel.SetParent(rightPanel)
-	imagePanel.SetAlign(types.AlTop)
-	imagePanel.SetHeight(200)
-	imagePanel.SetBevelOuter(types.BvLowered) // 设置边框样式
+	imagePanel.SetAlign(types.AlTop)          // 顶部对齐
+	imagePanel.SetHeight(200)                 // 设置高度为200像素
+	imagePanel.SetBevelOuter(types.BvLowered) // 设置边框样式为凹陷
 
 	// 创建图片框
 	f.ImageBox = vcl.NewImage(f.TForm)
 	f.ImageBox.SetParent(imagePanel)
-	f.ImageBox.SetAlign(types.AlClient) // 填充整个面板
-	f.ImageBox.SetCenter(true)
-	f.ImageBox.SetStretch(true)
-	f.ImageBox.SetProportional(true)
+	f.ImageBox.SetAlign(types.AlClient) // 客户端对齐，填充图片框容器
+	f.ImageBox.SetCenter(true)          // 图片居中显示
+	f.ImageBox.SetStretch(true)         // 图片拉伸填充
+	f.ImageBox.SetProportional(true)    // 保持图片比例
 
 	// 创建输入编辑框
 	f.EditInput = vcl.NewMemo(f.TForm)
 	f.EditInput.SetParent(rightPanel)
-	f.EditInput.SetAlign(types.AlClient)
-	f.EditInput.SetScrollBars(types.SsBoth)
-	f.EditInput.SetReadOnly(true)
+	f.EditInput.SetAlign(types.AlClient)    // 客户端对齐，填充右侧面板剩余空间
+	f.EditInput.SetScrollBars(types.SsBoth) // 设置双向滚动条
+	f.EditInput.SetReadOnly(true)           // 设置为只读
 	f.EditInput.SetText("欢迎使用 GO VCL 多功能演示程序！\n\n本程序提供以下功能：\n\n1. Excel操作 - 导入/导出Excel文件\n2. JSON操作 - 解析/生成JSON数据\n3. HTTP操作 - 网络请求和文件下载\n4. 数据库操作 - SQLite数据库管理\n5. Web服务器 - 启动/停止HTTP和WebSocket服务\n6. TCP服务器 - 启动/停止TCP服务\n7. 图片导入 - 导入并显示图片\n\n请点击上方按钮开始使用。")
 
 	// 设置事件处理
@@ -329,38 +404,86 @@ func (f *MainForm) createUI() {
 }
 
 // createMainMenu 创建主菜单
+//
+// 功能说明:
+//  1. 创建主菜单栏
+//  2. 创建文件、编辑、工具和帮助四个主菜单
+//  3. 为编辑菜单添加清空编辑框菜单项
+//  4. 设置菜单项的标题和事件处理函数
+//
+// 菜单结构:
+//
+//	主菜单栏
+//	├── 文件(&F)
+//	├── 编辑(&E)
+//	│   └── 清空编辑框(&C)
+//	├── 工具(&T)
+//	└── 帮助(&H)
+//
+// 注意事项:
+//   - 菜单标题中的&符号表示快捷键，如Alt+F打开文件菜单
+//   - 菜单项需要设置事件处理函数以响应点击事件
 func (f *MainForm) createMainMenu() {
 	// 创建主菜单栏
 	f.MainMenu = vcl.NewMainMenu(f.TForm)
 
 	// 创建文件菜单
-	f.FileMenu = vcl.NewMenuItem(f.TForm)
-	f.FileMenu.SetCaption("文件(&F)")
-	f.MainMenu.Items().Add(f.FileMenu)
+	// f.FileMenu = vcl.NewMenuItem(f.TForm)
+	// f.FileMenu.SetCaption("文件(&F)")    // 设置文件菜单标题，&F表示Alt+F快捷键
+	// f.MainMenu.Items().Add(f.FileMenu) // 将文件菜单添加到主菜单栏
 
 	// 创建编辑菜单
 	f.EditMenu = vcl.NewMenuItem(f.TForm)
-	f.EditMenu.SetCaption("编辑(&E)")
-	f.MainMenu.Items().Add(f.EditMenu)
+	f.EditMenu.SetCaption("编辑(&E)")    // 设置编辑菜单标题，&E表示Alt+E快捷键
+	f.MainMenu.Items().Add(f.EditMenu) // 将编辑菜单添加到主菜单栏
 
 	// 添加清空编辑框菜单项到编辑菜单
 	f.ClearEditItem = vcl.NewMenuItem(f.TForm)
-	f.ClearEditItem.SetCaption("清空编辑框(&C)")
-	f.ClearEditItem.SetOnClick(f.onClearEditClick)
-	f.EditMenu.Add(f.ClearEditItem)
+	f.ClearEditItem.SetCaption("清空编辑框(&C)")        // 设置菜单项标题，&C表示Alt+C快捷键
+	f.ClearEditItem.SetOnClick(f.onClearEditClick) // 设置点击事件处理函数
+	f.EditMenu.Add(f.ClearEditItem)                // 将菜单项添加到编辑菜单
 
 	// 创建工具菜单
-	f.ToolsMenu = vcl.NewMenuItem(f.TForm)
-	f.ToolsMenu.SetCaption("工具(&T)")
-	f.MainMenu.Items().Add(f.ToolsMenu)
+	// f.ToolsMenu = vcl.NewMenuItem(f.TForm)
+	// f.ToolsMenu.SetCaption("工具(&T)")    // 设置工具菜单标题，&T表示Alt+T快捷键
+	// f.MainMenu.Items().Add(f.ToolsMenu) // 将工具菜单添加到主菜单栏
 
-	// 创建帮助菜单
-	f.HelpMenu = vcl.NewMenuItem(f.TForm)
-	f.HelpMenu.SetCaption("帮助(&H)")
-	f.MainMenu.Items().Add(f.HelpMenu)
+	// // 创建帮助菜单
+	// f.HelpMenu = vcl.NewMenuItem(f.TForm)
+	// f.HelpMenu.SetCaption("帮助(&H)")    // 设置帮助菜单标题，&H表示Alt+H快捷键
+	// f.MainMenu.Items().Add(f.HelpMenu) // 将帮助菜单添加到主菜单栏
 }
 
 // createButtons 创建按钮组件
+//
+// 功能说明:
+//  1. 创建参数配置区域面板，包含线程数、任务数、选项配置和TCP客户端连接配置
+//  2. 创建TCP数据发送配置区域，包含数据输入和发送按钮
+//  3. 创建多功能演示标签，用于展示不同功能
+//  4. 创建功能按钮面板，包含5行共16个功能按钮
+//  5. 设置各组件的位置、大小、默认值和事件处理函数
+//
+// 面板布局:
+//
+//	按钮面板 (PanelButtons)
+//	├── 参数配置区域 (configPanel)
+//	│   ├── 线程/任务数量配置
+//	│   ├── 单选框/多选框配置
+//	│   ├── TCP客户端连接配置
+//	│   ├── TCP数据发送配置
+//	│   └── 多功能演示标签
+//	└── 功能按钮面板 (buttonPanel)
+//	    ├── 第一行按钮 (3个): 保存配置、获取选中状态、导入Excel
+//	    ├── 第二行按钮 (3个): 导入图片、Excel操作、JSON操作
+//	    ├── 第三行按钮 (3个): HTTP操作、数据库操作、多线程测试
+//	    ├── 第四行按钮 (3个): 调整列宽、Web服务器、TCP服务
+//	    └── 第五行按钮 (1个): 关闭
+//
+// 注意事项:
+//   - 使用网格布局优化按钮排列，每行最多3个按钮
+//   - SpinEdit组件设置了最小值、最大值和默认值
+//   - TCP服务器IP和端口有默认值，方便测试
+//   - 所有按钮都绑定了对应的点击事件处理函数
 func (f *MainForm) createButtons() {
 	// 创建一个现代化的按钮面板布局
 	// 使用表格布局来优化按钮排列
@@ -368,10 +491,10 @@ func (f *MainForm) createButtons() {
 	// 创建参数配置区域面板
 	configPanel := vcl.NewPanel(f.TForm)
 	configPanel.SetParent(f.PanelButtons)
-	configPanel.SetAlign(types.AlLeft)
-	configPanel.SetWidth(330) // 增加宽度以容纳多选框
-	configPanel.SetBevelOuter(types.BvNone)
-	configPanel.SetHeight(170) // 增加高度以容纳TCP客户端连接配置、数据发送控件和多功能演示标签
+	configPanel.SetAlign(types.AlLeft)      // 设置左对齐，占据按钮面板左侧空间
+	configPanel.SetWidth(330)               // 增加宽度以容纳多选框
+	configPanel.SetBevelOuter(types.BvNone) // 设置无边框样式
+	configPanel.SetHeight(170)              // 增加高度以容纳TCP客户端连接配置、数据发送控件和多功能演示标签
 
 	// 创建参数标签和编辑框
 	f.LabelThread = vcl.NewLabel(f.TForm)
@@ -386,9 +509,9 @@ func (f *MainForm) createButtons() {
 	f.EditThreadCount.SetLeft(85)
 	f.EditThreadCount.SetTop(8)
 	f.EditThreadCount.SetWidth(80)
-	f.EditThreadCount.SetMinValue(1)
-	f.EditThreadCount.SetMaxValue(100)
-	f.EditThreadCount.SetValue(8)
+	f.EditThreadCount.SetMinValue(1)   // 设置最小线程数为1
+	f.EditThreadCount.SetMaxValue(100) // 设置最大线程数为100
+	f.EditThreadCount.SetValue(8)      // 设置默认线程数为8
 
 	f.LabelTask = vcl.NewLabel(f.TForm)
 	f.LabelTask.SetParent(configPanel)
@@ -402,9 +525,9 @@ func (f *MainForm) createButtons() {
 	f.EditTaskCount.SetLeft(85)
 	f.EditTaskCount.SetTop(33)
 	f.EditTaskCount.SetWidth(80)
-	f.EditTaskCount.SetMinValue(1)
-	f.EditTaskCount.SetMaxValue(1000)
-	f.EditTaskCount.SetValue(50)
+	f.EditTaskCount.SetMinValue(1)    // 设置最小任务数为1
+	f.EditTaskCount.SetMaxValue(1000) // 设置最大任务数为1000
+	f.EditTaskCount.SetValue(50)      // 设置默认任务数为50
 
 	// 创建单选框
 	f.RadioOption1 = vcl.NewRadioButton(f.TForm)
@@ -421,6 +544,7 @@ func (f *MainForm) createButtons() {
 	f.RadioOption2.SetLeft(85)
 	f.RadioOption2.SetTop(60)
 	f.RadioOption2.SetWidth(70)
+	f.RadioOption2.SetChecked(false) // 默认不选中第二个选项，与RadioOption1互斥
 
 	// 创建多选框
 	f.CheckBox1 = vcl.NewCheckBox(f.TForm)
@@ -450,7 +574,7 @@ func (f *MainForm) createButtons() {
 	f.EditTCPServerIP.SetLeft(85)
 	f.EditTCPServerIP.SetTop(83)
 	f.EditTCPServerIP.SetWidth(80)
-	f.EditTCPServerIP.SetText("127.0.0.1")
+	f.EditTCPServerIP.SetText("127.0.0.1") // 设置默认IP地址为本地回环地址
 
 	f.LabelTCPServer = vcl.NewLabel(f.TForm)
 	f.LabelTCPServer.SetParent(configPanel)
@@ -464,7 +588,7 @@ func (f *MainForm) createButtons() {
 	f.EditTCPServerPort.SetLeft(180)
 	f.EditTCPServerPort.SetTop(83)
 	f.EditTCPServerPort.SetWidth(50)
-	f.EditTCPServerPort.SetText("8082")
+	f.EditTCPServerPort.SetText("8082") // 设置默认端口号为8082
 
 	f.BtnConnectTCP = vcl.NewButton(f.TForm)
 	f.BtnConnectTCP.SetParent(configPanel)
@@ -473,7 +597,7 @@ func (f *MainForm) createButtons() {
 	f.BtnConnectTCP.SetTop(83)
 	f.BtnConnectTCP.SetWidth(75)
 	f.BtnConnectTCP.SetHeight(22)
-	f.BtnConnectTCP.SetOnClick(f.onConnectTCPClick)
+	f.BtnConnectTCP.SetOnClick(f.onConnectTCPClick) // 绑定TCP连接事件处理函数
 
 	// 创建TCP数据发送配置
 	f.LabelTCPData = vcl.NewLabel(f.TForm)
@@ -488,7 +612,7 @@ func (f *MainForm) createButtons() {
 	f.EditTCPData.SetLeft(85)
 	f.EditTCPData.SetTop(108)
 	f.EditTCPData.SetWidth(145)
-	f.EditTCPData.SetText("Hello TCP Server!")
+	f.EditTCPData.SetText("Hello TCP Server!") // 设置默认发送数据
 
 	f.BtnSendTCPData = vcl.NewButton(f.TForm)
 	f.BtnSendTCPData.SetParent(configPanel)
@@ -497,7 +621,7 @@ func (f *MainForm) createButtons() {
 	f.BtnSendTCPData.SetTop(108)
 	f.BtnSendTCPData.SetWidth(75)
 	f.BtnSendTCPData.SetHeight(22)
-	f.BtnSendTCPData.SetOnClick(f.onSendTCPDataClick)
+	f.BtnSendTCPData.SetOnClick(f.onSendTCPDataClick) // 绑定TCP数据发送事件处理函数
 
 	// 创建多功能演示标签
 	f.LabelMultiFunc = vcl.NewLabel(f.TForm)
@@ -507,22 +631,22 @@ func (f *MainForm) createButtons() {
 	f.LabelMultiFunc.SetTop(140)
 	f.LabelMultiFunc.SetWidth(100)
 	f.LabelMultiFunc.SetFont(vcl.NewFont())
-	f.LabelMultiFunc.Font().SetName("Microsoft YaHei")
-	f.LabelMultiFunc.Font().SetSize(12)
-	f.LabelMultiFunc.Font().SetColor(0x0000FF) // 红色 (RGB: 0x0000FF)
+	f.LabelMultiFunc.Font().SetName("Microsoft YaHei") // 设置字体为微软雅黑
+	f.LabelMultiFunc.Font().SetSize(12)                // 设置字体大小为12
+	f.LabelMultiFunc.Font().SetColor(0x0000FF)         // 设置字体颜色为蓝色 (RGB: 0x0000FF)
 
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
 	buttonPanel.SetParent(f.PanelButtons)
-	buttonPanel.SetAlign(types.AlClient)
-	buttonPanel.SetBevelOuter(types.BvNone)
+	buttonPanel.SetAlign(types.AlClient)    // 客户区对齐，填充整个父容器
+	buttonPanel.SetBevelOuter(types.BvNone) // 无边框样式
 
 	// 设置按钮面板高度以适应5排按钮的布局
 	buttonPanel.SetHeight(210) // 增加高度以适应5排按钮的布局
 
 	// 创建按钮 - 使用网格布局优化视觉效果
 
-	// 第一行按钮 (3个)
+	// 第一行按钮 (3个) - 配置和基础操作
 	f.BtnSaveConfig = vcl.NewButton(f.TForm)
 	f.BtnSaveConfig.SetParent(buttonPanel)
 	f.BtnSaveConfig.SetCaption("保存配置")
@@ -530,7 +654,7 @@ func (f *MainForm) createButtons() {
 	f.BtnSaveConfig.SetHeight(30)
 	f.BtnSaveConfig.SetLeft(10)
 	f.BtnSaveConfig.SetTop(5)
-	f.BtnSaveConfig.SetOnClick(f.onSaveConfigClick)
+	f.BtnSaveConfig.SetOnClick(f.onSaveConfigClick) // 绑定保存配置事件处理函数
 
 	f.BtnGetSelections = vcl.NewButton(f.TForm)
 	f.BtnGetSelections.SetParent(buttonPanel)
@@ -539,7 +663,7 @@ func (f *MainForm) createButtons() {
 	f.BtnGetSelections.SetHeight(30)
 	f.BtnGetSelections.SetLeft(115)
 	f.BtnGetSelections.SetTop(5)
-	f.BtnGetSelections.SetOnClick(f.onGetSelectionsClick)
+	f.BtnGetSelections.SetOnClick(f.onGetSelectionsClick) // 绑定获取选中状态事件处理函数
 
 	f.BtnImportExcel = vcl.NewButton(f.TForm)
 	f.BtnImportExcel.SetParent(buttonPanel)
@@ -548,9 +672,9 @@ func (f *MainForm) createButtons() {
 	f.BtnImportExcel.SetHeight(30)
 	f.BtnImportExcel.SetLeft(220)
 	f.BtnImportExcel.SetTop(5)
-	f.BtnImportExcel.SetOnClick(f.onImportExcelClick)
+	f.BtnImportExcel.SetOnClick(f.onImportExcelClick) // 绑定导入Excel事件处理函数
 
-	// 第二行按钮 (3个)
+	// 第二行按钮 (3个) - 文件处理操作
 	f.BtnImportImage = vcl.NewButton(f.TForm)
 	f.BtnImportImage.SetParent(buttonPanel)
 	f.BtnImportImage.SetCaption("导入图片")
@@ -558,7 +682,7 @@ func (f *MainForm) createButtons() {
 	f.BtnImportImage.SetHeight(30)
 	f.BtnImportImage.SetLeft(10)
 	f.BtnImportImage.SetTop(45)
-	f.BtnImportImage.SetOnClick(f.onImportImageClick)
+	f.BtnImportImage.SetOnClick(f.onImportImageClick) // 绑定导入图片事件处理函数
 
 	f.BtnExcel = vcl.NewButton(f.TForm)
 	f.BtnExcel.SetParent(buttonPanel)
@@ -567,7 +691,7 @@ func (f *MainForm) createButtons() {
 	f.BtnExcel.SetHeight(30)
 	f.BtnExcel.SetLeft(115)
 	f.BtnExcel.SetTop(45)
-	f.BtnExcel.SetOnClick(f.onExcelClick)
+	f.BtnExcel.SetOnClick(f.onExcelClick) // 绑定Excel操作事件处理函数
 
 	f.BtnJSON = vcl.NewButton(f.TForm)
 	f.BtnJSON.SetParent(buttonPanel)
@@ -576,9 +700,9 @@ func (f *MainForm) createButtons() {
 	f.BtnJSON.SetHeight(30)
 	f.BtnJSON.SetLeft(220)
 	f.BtnJSON.SetTop(45)
-	f.BtnJSON.SetOnClick(f.onJSONClick)
+	f.BtnJSON.SetOnClick(f.onJSONClick) // 绑定JSON操作事件处理函数
 
-	// 第三行按钮 (3个)
+	// 第三行按钮 (3个) - 网络和数据库操作
 	f.BtnHTTP = vcl.NewButton(f.TForm)
 	f.BtnHTTP.SetParent(buttonPanel)
 	f.BtnHTTP.SetCaption("HTTP操作")
@@ -586,7 +710,7 @@ func (f *MainForm) createButtons() {
 	f.BtnHTTP.SetHeight(30)
 	f.BtnHTTP.SetLeft(10)
 	f.BtnHTTP.SetTop(85)
-	f.BtnHTTP.SetOnClick(f.onHTTPClick)
+	f.BtnHTTP.SetOnClick(f.onHTTPClick) // 绑定HTTP操作事件处理函数
 
 	f.BtnDatabase = vcl.NewButton(f.TForm)
 	f.BtnDatabase.SetParent(buttonPanel)
@@ -595,7 +719,7 @@ func (f *MainForm) createButtons() {
 	f.BtnDatabase.SetHeight(30)
 	f.BtnDatabase.SetLeft(115)
 	f.BtnDatabase.SetTop(85)
-	f.BtnDatabase.SetOnClick(f.onDatabaseClick)
+	f.BtnDatabase.SetOnClick(f.onDatabaseClick) // 绑定数据库操作事件处理函数
 
 	f.BtnConcurrent = vcl.NewButton(f.TForm)
 	f.BtnConcurrent.SetParent(buttonPanel)
@@ -604,9 +728,9 @@ func (f *MainForm) createButtons() {
 	f.BtnConcurrent.SetHeight(30)
 	f.BtnConcurrent.SetLeft(220)
 	f.BtnConcurrent.SetTop(85)
-	f.BtnConcurrent.SetOnClick(f.onConcurrentClick)
+	f.BtnConcurrent.SetOnClick(f.onConcurrentClick) // 绑定多线程测试事件处理函数
 
-	// 第四行按钮 (3个)
+	// 第四行按钮 (3个) - 高级功能操作
 	f.BtnResizeColumns = vcl.NewButton(f.TForm)
 	f.BtnResizeColumns.SetParent(buttonPanel)
 	f.BtnResizeColumns.SetCaption("调整列宽")
@@ -614,7 +738,7 @@ func (f *MainForm) createButtons() {
 	f.BtnResizeColumns.SetHeight(30)
 	f.BtnResizeColumns.SetLeft(10)
 	f.BtnResizeColumns.SetTop(125)
-	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick)
+	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick) // 绑定调整列宽事件处理函数
 
 	f.BtnWebServer = vcl.NewButton(f.TForm)
 	f.BtnWebServer.SetParent(buttonPanel)
@@ -623,7 +747,7 @@ func (f *MainForm) createButtons() {
 	f.BtnWebServer.SetHeight(30)
 	f.BtnWebServer.SetLeft(115)
 	f.BtnWebServer.SetTop(125)
-	f.BtnWebServer.SetOnClick(f.onWebServerClick)
+	f.BtnWebServer.SetOnClick(f.onWebServerClick) // 绑定Web服务器事件处理函数
 
 	f.BtnTCPServer = vcl.NewButton(f.TForm)
 	f.BtnTCPServer.SetParent(buttonPanel)
@@ -632,9 +756,9 @@ func (f *MainForm) createButtons() {
 	f.BtnTCPServer.SetHeight(30)
 	f.BtnTCPServer.SetLeft(220)
 	f.BtnTCPServer.SetTop(125)
-	f.BtnTCPServer.SetOnClick(f.onTCPServerClick)
+	f.BtnTCPServer.SetOnClick(f.onTCPServerClick) // 绑定TCP服务事件处理函数
 
-	// 第五行按钮 (1个)
+	// 第五行按钮 (1个) - 应用程序控制
 	f.BtnClose = vcl.NewButton(f.TForm)
 	f.BtnClose.SetParent(buttonPanel)
 	f.BtnClose.SetCaption("关闭")
@@ -642,41 +766,63 @@ func (f *MainForm) createButtons() {
 	f.BtnClose.SetHeight(30)
 	f.BtnClose.SetLeft(10)
 	f.BtnClose.SetTop(165)
-	f.BtnClose.SetOnClick(f.onCloseClick)
+	f.BtnClose.SetOnClick(f.onCloseClick) // 绑定关闭事件处理函数
 
 	// 创建皮肤选择按钮
 
 }
 
 // setupEvents 设置事件处理
+// 功能说明:
+//  1. 为表格组件设置鼠标事件处理，用于检测列宽调整操作
+//  2. 为单选框组件设置点击事件处理，实现选项互斥逻辑
+//  3. 为多选框组件设置点击事件处理，记录选择状态
+//
+// 注意事项:
+//   - 在设置事件前会检查组件是否为nil，避免空指针异常
+//   - 事件处理函数需要与组件生命周期一致，避免内存泄漏
 func (f *MainForm) setupEvents() {
 	// 设置表格事件处理
 	if f.TableData != nil {
 		// TStringGrid没有直接的列宽调整事件，但我们可以使用鼠标事件来检测
-		f.TableData.SetOnMouseDown(f.onTableMouseDown)
-		f.TableData.SetOnMouseUp(f.onTableMouseUp)
+		f.TableData.SetOnMouseDown(f.onTableMouseDown) // 鼠标按下事件，记录初始位置
+		f.TableData.SetOnMouseUp(f.onTableMouseUp)     // 鼠标释放事件，判断是否进行了列宽调整
 	}
 
 	// 设置单选框事件处理
 	if f.RadioOption1 != nil {
-		f.RadioOption1.SetOnClick(f.onRadioOption1Click)
+		f.RadioOption1.SetOnClick(f.onRadioOption1Click) // 第一个单选框点击事件
 	}
 
 	if f.RadioOption2 != nil {
-		f.RadioOption2.SetOnClick(f.onRadioOption2Click)
+		f.RadioOption2.SetOnClick(f.onRadioOption2Click) // 第二个单选框点击事件
 	}
 
 	// 设置多选框事件处理
 	if f.CheckBox1 != nil {
-		f.CheckBox1.SetOnClick(f.onCheckBox1Click)
+		f.CheckBox1.SetOnClick(f.onCheckBox1Click) // 第一个多选框点击事件
 	}
 
 	if f.CheckBox2 != nil {
-		f.CheckBox2.SetOnClick(f.onCheckBox2Click)
+		f.CheckBox2.SetOnClick(f.onCheckBox2Click) // 第二个多选框点击事件
 	}
 }
 
 // onTableMouseDown 表格鼠标按下事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的表格组件
+//   - button: 按下的鼠标按钮(左键/右键/中键)
+//   - shift: 修饰键状态(Shift/Ctrl/Alt)
+//   - x, y: 鼠标在表格客户区的坐标位置
+//
+// 功能说明:
+//  1. 记录鼠标按下时的位置，用于后续判断是否进行了列宽调整
+//  2. 检查表格的列宽调整选项是否已启用
+//  3. 如果列宽调整未启用，则重新设置表格选项启用该功能
+//
+// 注意事项:
+//   - 表格选项需要组合使用，不能单独设置
+//   - 使用位运算检查选项是否已启用
 func (f *MainForm) onTableMouseDown(sender vcl.IObject, button types.TMouseButton, shift types.TShiftState, x, y int32) {
 	// 记录鼠标按下时的位置，用于后续判断是否进行了列宽调整
 	log.Printf("表格鼠标按下事件: 按钮=%v, 位置=(%d,%d)", button, x, y)
@@ -706,8 +852,20 @@ func (f *MainForm) onTableMouseDown(sender vcl.IObject, button types.TMouseButto
 }
 
 // onTableMouseUp 表格鼠标释放事件
-// 该方法处理表格组件的鼠标释放事件，主要用于完成表格操作后的状态更新
-// 特别关注列宽调整后的状态检查和日志记录
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的表格组件
+//   - button: 释放的鼠标按钮(左键/右键/中键)
+//   - shift: 修饰键状态(Shift/Ctrl/Alt)
+//   - x, y: 鼠标在表格客户区的坐标位置
+//
+// 功能说明:
+//  1. 记录鼠标释放时的位置，用于判断操作类型
+//  2. 检查表格选项是否仍然包含列宽调整功能
+//  3. 输出当前所有列的宽度信息，用于调试和状态监控
+//
+// 注意事项:
+//   - 列宽调整操作完成后，表格选项可能被重置
+//   - 列宽信息可用于保存用户自定义布局
 func (f *MainForm) onTableMouseUp(sender vcl.IObject, button types.TMouseButton, shift types.TShiftState, x, y int32) {
 	// 记录鼠标释放时的位置
 	log.Printf("表格鼠标释放事件: 按钮=%v, 位置=(%d,%d)", button, x, y)
@@ -732,16 +890,35 @@ func (f *MainForm) onTableMouseUp(sender vcl.IObject, button types.TMouseButton,
 // 事件处理函数
 
 // onShow 窗口显示事件
-// 该方法在窗口显示时被调用，用于初始化窗口状态和显示欢迎信息
-// 这是窗口生命周期中的重要事件，通常用于完成界面初始化后的准备工作
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的窗口组件
+//
+// 功能说明:
+//  1. 在窗口显示时被调用，用于初始化窗口状态
+//  2. 显示欢迎信息和程序就绪状态
+//  3. 记录窗口显示日志，便于调试
+//
+// 注意事项:
+//   - 这是窗口生命周期中的重要事件，通常用于完成界面初始化后的准备工作
+//   - 应避免在此事件中执行耗时操作，以免影响窗口显示速度
 func (f *MainForm) onShow(sender vcl.IObject) {
 	f.UpdateStatus("程序已启动就绪")
 	log.Println("主窗口已显示")
 }
 
 // onClose 窗口关闭事件
-// 该方法在用户尝试关闭窗口时被调用，用于处理程序退出前的清理工作
-// 通过设置action参数控制窗口关闭行为，CaFree表示关闭后释放窗口资源
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的窗口组件
+//   - action: 关闭动作参数，用于控制窗口关闭行为
+//
+// 功能说明:
+//  1. 在用户尝试关闭窗口时被调用，处理程序退出前的清理工作
+//  2. 记录程序退出日志，便于追踪应用程序生命周期
+//  3. 设置action参数控制窗口关闭行为
+//
+// 注意事项:
+//   - CaFree表示关闭后释放窗口资源，避免内存泄漏
+//   - 应在此事件中保存用户数据和配置
 func (f *MainForm) onClose(sender vcl.IObject, action *types.TCloseAction) {
 	log.Println("程序正在退出...")
 	f.UpdateStatus("程序退出")
@@ -749,13 +926,33 @@ func (f *MainForm) onClose(sender vcl.IObject, action *types.TCloseAction) {
 }
 
 // onCloseClick 关闭按钮点击事件
-// 该方法处理用户点击关闭按钮的操作，直接调用窗口的Close方法
-// 这是用户主动退出应用程序的主要方式之一
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的关闭按钮组件
+//
+// 功能说明:
+//  1. 处理用户点击关闭按钮的操作
+//  2. 直接调用窗口的Close方法，触发窗口关闭事件
+//
+// 注意事项:
+//   - 这是用户主动退出应用程序的主要方式之一
+//   - 实际的清理工作在onClose事件中完成
 func (f *MainForm) onCloseClick(sender vcl.IObject) {
 	f.TForm.Close()
 }
 
 // onImportExcelClick 导入Excel按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的导入Excel按钮组件
+//
+// 功能说明:
+//  1. 创建并配置Excel文件选择对话框，支持.xlsx格式和所有文件
+//  2. 显示文件选择对话框，让用户选择要导入的Excel文件
+//  3. 调用Excel管理器的导入功能，将Excel数据加载到表格中
+//  4. 处理导入结果，更新状态栏和日志信息
+//
+// 注意事项:
+//   - 导入过程中会记录详细的操作日志，便于问题追踪
+//   - 导入成功后会自动更新表格显示和状态栏信息
 func (f *MainForm) onImportExcelClick(sender vcl.IObject) {
 	f.AddLog("=== Excel文件导入开始 ===")
 
@@ -787,6 +984,18 @@ func (f *MainForm) onImportExcelClick(sender vcl.IObject) {
 }
 
 // onImportImageClick 导入图片按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的导入图片按钮组件
+//
+// 功能说明:
+//  1. 创建并配置图片文件选择对话框，支持多种常见图片格式
+//  2. 显示文件选择对话框，让用户选择要导入的图片文件
+//  3. 加载选中的图片到图片框组件中显示
+//  4. 显示图片尺寸信息，更新状态栏
+//
+// 注意事项:
+//   - 支持常见图片格式：JPG、JPEG、PNG、BMP、GIF
+//   - 图片加载成功后会显示图片尺寸信息
 func (f *MainForm) onImportImageClick(sender vcl.IObject) {
 	f.AddLog("=== 图片导入开始 ===")
 
@@ -816,6 +1025,20 @@ func (f *MainForm) onImportImageClick(sender vcl.IObject) {
 }
 
 // onExcelClick Excel操作按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的Excel操作按钮组件
+//
+// 功能说明:
+//  1. 检查Excel管理器是否已初始化，确保功能可用
+//  2. 测试获取默认Excel文件路径功能
+//  3. 创建示例Excel文件，包含测试数据
+//  4. 获取并显示Excel文件信息
+//  5. 测试Excel转JSON功能
+//  6. 更新表格显示和状态栏信息
+//
+// 注意事项:
+//   - 使用示例数据测试Excel管理器的各项功能
+//   - 所有操作都会记录详细日志，便于调试和问题追踪
 func (f *MainForm) onExcelClick(sender vcl.IObject) {
 	if f.ExcelManager == nil {
 		f.AddLog("Excel管理器未初始化")
@@ -869,6 +1092,21 @@ func (f *MainForm) onExcelClick(sender vcl.IObject) {
 }
 
 // onJSONClick JSON操作按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的JSON操作按钮组件
+//
+// 功能说明:
+//  1. 测试JSON数据解析功能
+//  2. 测试JSON信息获取功能
+//  3. 测试JSON路径查找功能
+//  4. 测试JSON值修改功能
+//  5. 测试JSON文件保存和加载功能
+//  6. 测试JSON格式验证功能
+//  7. 更新表格显示和状态栏信息
+//
+// 注意事项:
+//   - 使用默认JSON数据测试JSON管理器的各项功能
+//   - 所有操作都会记录详细日志，便于调试和问题追踪
 func (f *MainForm) onJSONClick(sender vcl.IObject) {
 	f.AddLog("=== JSON操作测试开始 ===")
 
@@ -951,6 +1189,21 @@ func (f *MainForm) onJSONClick(sender vcl.IObject) {
 }
 
 // onHTTPClick HTTP操作按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的HTTP操作按钮组件
+//
+// 功能说明:
+//  1. 测试公共API接口
+//  2. 测试HTTP GET请求
+//  3. 测试POST请求（JSON数据）
+//  4. 测试POST请求（表单数据）
+//  5. 测试文件下载功能
+//  6. 显示HTTP客户端配置信息
+//  7. 更新表格显示和状态栏信息
+//
+// 注意事项:
+//   - 使用公共API接口测试HTTP管理器的各项功能
+//   - 所有操作都会记录详细日志，便于调试和问题追踪
 func (f *MainForm) onHTTPClick(sender vcl.IObject) {
 	f.AddLog("=== HTTP操作测试开始 ===")
 
@@ -1028,6 +1281,21 @@ func (f *MainForm) onHTTPClick(sender vcl.IObject) {
 }
 
 // onDatabaseClick 数据库操作按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的数据库操作按钮组件
+//
+// 功能说明:
+//  1. 创建示例数据库表
+//  2. 插入测试数据
+//  3. 查询数据并显示
+//  4. 更新数据
+//  5. 删除数据
+//  6. 显示数据库信息
+//  7. 更新表格显示和状态栏信息
+//
+// 注意事项:
+//   - 使用默认数据库测试数据库管理器的各项功能
+//   - 所有操作都会记录详细日志，便于调试和问题追踪
 func (f *MainForm) onDatabaseClick(sender vcl.IObject) {
 	f.AddLog("=== 数据库操作测试开始 ===")
 
@@ -1151,6 +1419,17 @@ func (f *MainForm) onDatabaseClick(sender vcl.IObject) {
 }
 
 // onRadioOption1Click 单选框1选中事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的单选框1组件
+//
+// 功能说明:
+//  1. 检查单选框1是否被选中
+//  2. 记录选中状态到日志和状态栏
+//  3. 确保单选框2不被选中，实现互斥选择
+//
+// 注意事项:
+//   - 单选框之间应该保持互斥性，只能选择一个
+//   - 使用空指针检查防止运行时错误
 func (f *MainForm) onRadioOption1Click(sender vcl.IObject) {
 	if f.RadioOption1 != nil && f.RadioOption1.Checked() {
 		f.AddLog("单选框1被选中: 选项 1")
@@ -1164,6 +1443,17 @@ func (f *MainForm) onRadioOption1Click(sender vcl.IObject) {
 }
 
 // onRadioOption2Click 单选框2选中事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的单选框2组件
+//
+// 功能说明:
+//  1. 检查单选框2是否被选中
+//  2. 记录选中状态到日志和状态栏
+//  3. 确保单选框1不被选中，实现互斥选择
+//
+// 注意事项:
+//   - 单选框之间应该保持互斥性，只能选择一个
+//   - 使用空指针检查防止运行时错误
 func (f *MainForm) onRadioOption2Click(sender vcl.IObject) {
 	if f.RadioOption2 != nil && f.RadioOption2.Checked() {
 		f.AddLog("单选框2被选中: 选项 2")
@@ -1177,6 +1467,16 @@ func (f *MainForm) onRadioOption2Click(sender vcl.IObject) {
 }
 
 // onCheckBox1Click 多选框1点击事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的多选框1组件
+//
+// 功能说明:
+//  1. 检查多选框1的选中状态
+//  2. 记录选中/取消选中状态到日志和状态栏
+//
+// 注意事项:
+//   - 多选框可以独立选择，不与其他组件互斥
+//   - 使用空指针检查防止运行时错误
 func (f *MainForm) onCheckBox1Click(sender vcl.IObject) {
 	if f.CheckBox1 != nil {
 		if f.CheckBox1.Checked() {
@@ -1190,6 +1490,16 @@ func (f *MainForm) onCheckBox1Click(sender vcl.IObject) {
 }
 
 // onCheckBox2Click 多选框2点击事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的多选框2组件
+//
+// 功能说明:
+//  1. 检查多选框2的选中状态
+//  2. 记录选中/取消选中状态到日志和状态栏
+//
+// 注意事项:
+//   - 多选框可以独立选择，不与其他组件互斥
+//   - 使用空指针检查防止运行时错误
 func (f *MainForm) onCheckBox2Click(sender vcl.IObject) {
 	if f.CheckBox2 != nil {
 		if f.CheckBox2.Checked() {
@@ -1203,15 +1513,37 @@ func (f *MainForm) onCheckBox2Click(sender vcl.IObject) {
 }
 
 // onClearEditClick 清空编辑框菜单项点击事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的清空编辑框菜单项组件
+//
+// 功能说明:
+//  1. 检查编辑框组件是否存在
+//  2. 清空编辑框内容
+//  3. 记录操作到日志和状态栏
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 清空操作不可逆，用户需要重新输入内容
 func (f *MainForm) onClearEditClick(sender vcl.IObject) {
 	if f.EditInput != nil {
 		f.EditInput.SetText("")
-		f.AddLog("编辑框内容已清空")
+		// f.AddLog("编辑框内容已清空")
 		log.Println("编辑框内容已清空")
 	}
 }
 
 // onGetSelectionsClick 获取选中状态按钮点击事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的获取选中状态按钮组件
+//
+// 功能说明:
+//  1. 获取单选框1和单选框2的选中状态
+//  2. 获取多选框1和多选框2的选中状态
+//  3. 将所有状态信息显示在日志和状态栏
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 单选框和多选框的状态检查方式相同，但逻辑意义不同
 func (f *MainForm) onGetSelectionsClick(sender vcl.IObject) {
 	f.AddLog("=== 获取控件选中状态 ===")
 
@@ -1270,6 +1602,20 @@ func (f *MainForm) onGetSelectionsClick(sender vcl.IObject) {
 }
 
 // onResizeColumnsClick 调整列宽按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的调整列宽按钮组件
+//
+// 功能说明:
+//  1. 检查表格组件是否已初始化
+//  2. 获取当前表格列数和列宽调整选项状态
+//  3. 确保列宽调整选项已启用
+//  4. 设置每列为不同宽度，便于测试手动调整
+//  5. 刷新表格显示并输出最终列宽信息
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 列宽调整需要启用GoColSizing和GoThumbTracking选项
+//   - 固定列数设置为0，允许调整所有列
 func (f *MainForm) onResizeColumnsClick(sender vcl.IObject) {
 	f.AddLog("=== 表格列宽调整测试开始 ===")
 
@@ -1333,6 +1679,20 @@ func (f *MainForm) onResizeColumnsClick(sender vcl.IObject) {
 }
 
 // onWebServerClick Web服务器按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的Web服务器按钮组件
+//
+// 功能说明:
+//  1. 检查Web服务器管理器是否已初始化
+//  2. 根据服务器当前状态执行启动或停止操作
+//  3. 启动时显示服务器信息并更新按钮文本
+//  4. 停止时更新按钮文本和状态栏信息
+//  5. 更新表格中的服务器状态显示
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 服务器状态变化时需要同步更新UI显示
+//   - 表格状态更新使用异常处理防止崩溃
 func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 	if f.WebServerManager == nil {
 		f.AddLog("Web服务器管理器未初始化")
@@ -1351,7 +1711,7 @@ func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 			f.UpdateStatus("停止Web服务器失败")
 		} else {
 			f.AddLog("Web服务器已成功停止")
-			f.BtnWebServer.SetCaption("🌐 Web服务器")
+			f.BtnWebServer.SetCaption("Web服务器")
 			f.UpdateStatus("Web服务器已停止")
 
 			// 更新表格状态
@@ -1373,7 +1733,7 @@ func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 			f.UpdateStatus("启动Web服务器失败")
 		} else {
 			f.AddLog("Web服务器已成功启动")
-			f.BtnWebServer.SetCaption("⏹️ 停止服务器")
+			f.BtnWebServer.SetCaption("停止服务器")
 			f.UpdateStatus("Web服务器运行中")
 
 			// 获取并显示服务器信息
@@ -1401,6 +1761,20 @@ func (f *MainForm) onWebServerClick(sender vcl.IObject) {
 }
 
 // onTCPServerClick TCP服务器按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的TCP服务器按钮组件
+//
+// 功能说明:
+//  1. 检查TCP服务器管理器是否已初始化
+//  2. 根据服务器当前状态执行启动或停止操作
+//  3. 启动时显示服务器信息并更新按钮文本
+//  4. 停止时更新按钮文本和状态栏信息
+//  5. 更新表格中的服务器状态显示
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 服务器状态变化时需要同步更新UI显示
+//   - 表格状态更新使用异常处理防止崩溃
 func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 	if f.TCPServerManager == nil {
 		f.AddLog("TCP服务器管理器未初始化")
@@ -1419,7 +1793,7 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 			f.UpdateStatus("停止TCP服务器失败")
 		} else {
 			f.AddLog("TCP服务器已成功停止")
-			f.BtnTCPServer.SetCaption("🔌 TCP服务")
+			f.BtnTCPServer.SetCaption(" TCP服务")
 			f.UpdateStatus("TCP服务器已停止")
 
 			// 更新表格状态
@@ -1441,7 +1815,7 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 			f.UpdateStatus("启动TCP服务器失败")
 		} else {
 			f.AddLog("TCP服务器已成功启动")
-			f.BtnTCPServer.SetCaption("⏹️ 停止服务")
+			f.BtnTCPServer.SetCaption("停止服务")
 			f.UpdateStatus("TCP服务器运行中")
 
 			// 获取并显示服务器信息
@@ -1469,6 +1843,21 @@ func (f *MainForm) onTCPServerClick(sender vcl.IObject) {
 }
 
 // onConnectTCPClick 连接TCP服务器按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的连接TCP服务器按钮组件
+//
+// 功能说明:
+//  1. 关闭之前的TCP连接（如果存在）
+//  2. 获取用户输入的IP地址和端口号
+//  3. 验证输入参数的有效性
+//  4. 使用goroutine异步执行TCP连接操作
+//  5. 读取服务器欢迎消息并发送测试消息
+//  6. 读取服务器响应并显示
+//
+// 注意事项:
+//   - 使用goroutine避免阻塞UI线程
+//   - 使用异常处理防止连接过程中崩溃
+//   - 连接成功后存储连接对象供后续使用
 func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 	// 如果已有连接，先关闭
 	if f.TCPConn != nil {
@@ -1523,10 +1912,13 @@ func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 			return
 		}
 
+		// 确保UTF-8编码处理
 		serverMessage := string(buffer[:n])
+		// 去除可能的换行符和回车符
+		serverMessage = strings.TrimSpace(serverMessage)
 		f.AddLog(fmt.Sprintf("服务器消息: %s", serverMessage))
 
-		// 发送测试消息
+		// 发送测试消息 - 确保UTF-8编码
 		testMessage := "Hello from TCP Client"
 		_, err = conn.Write([]byte(testMessage))
 		if err != nil {
@@ -1543,7 +1935,10 @@ func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 			return
 		}
 
+		// 确保UTF-8编码处理
 		serverResponse := string(buffer[:n])
+		// 去除可能的换行符和回车符
+		serverResponse = strings.TrimSpace(serverResponse)
 		f.AddLog(fmt.Sprintf("服务器响应: %s", serverResponse))
 
 		f.AddLog("=== TCP客户端连接结束 ===")
@@ -1551,6 +1946,20 @@ func (f *MainForm) onConnectTCPClick(sender vcl.IObject) {
 }
 
 // onSendTCPDataClick 发送TCP数据按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的发送TCP数据按钮组件
+//
+// 功能说明:
+//  1. 检查是否有可用的TCP连接
+//  2. 获取用户输入的发送数据
+//  3. 使用goroutine异步执行发送操作
+//  4. 发送数据并读取服务器响应
+//  5. 处理发送或读取失败情况
+//
+// 注意事项:
+//   - 使用goroutine避免阻塞UI线程
+//   - 发送或读取失败时会关闭连接
+//   - 使用异常处理防止发送过程中崩溃
 func (f *MainForm) onSendTCPDataClick(sender vcl.IObject) {
 	// 检查是否有TCP连接
 	if f.TCPConn == nil {
@@ -1599,7 +2008,10 @@ func (f *MainForm) onSendTCPDataClick(sender vcl.IObject) {
 			return
 		}
 
+		// 确保UTF-8编码处理
 		serverResponse := string(buffer[:n])
+		// 去除可能的换行符和回车符
+		serverResponse = strings.TrimSpace(serverResponse)
 		f.AddLog(fmt.Sprintf("服务器响应: %s", serverResponse))
 
 		f.AddLog("=== 发送TCP数据结束 ===")
@@ -1607,6 +2019,22 @@ func (f *MainForm) onSendTCPDataClick(sender vcl.IObject) {
 }
 
 // onConcurrentClick 多线程操作按钮事件
+// 参数说明:
+//   - sender: 事件发送者，即触发事件的多线程操作按钮组件
+//
+// 功能说明:
+//  1. 检查并发管理器是否已初始化
+//  2. 获取用户输入的线程数和任务数参数
+//  3. 测试HTTP并发任务
+//  4. 测试计算并发任务
+//  5. 测试I/O并发任务
+//  6. 测试混合并发任务
+//  7. 更新状态栏和表格显示
+//
+// 注意事项:
+//   - 使用goroutine异步执行各项任务，避免阻塞UI线程
+//   - 每个任务类型使用独立的goroutine执行
+//   - 表格状态更新使用异常处理防止崩溃
 func (f *MainForm) onConcurrentClick(sender vcl.IObject) {
 	if f.ConcurrentManager == nil {
 		f.AddLog("并发管理器未初始化")
@@ -1710,6 +2138,17 @@ func (f *MainForm) onConcurrentClick(sender vcl.IObject) {
 }
 
 // UpdateStatus 更新状态栏显示
+// 参数说明:
+//   - status: 要显示的状态信息字符串
+//
+// 功能说明:
+//  1. 格式化状态信息并添加时间戳
+//  2. 更新状态栏显示
+//  3. 记录状态更新日志
+//
+// 注意事项:
+//   - 当前状态栏功能被注释，仅记录日志
+//   - 使用defer处理可能的异常情况
 func (f *MainForm) UpdateStatus(status string) {
 	// if f.StatusBar != nil && f.StatusBar.Panels().Count() > 0 {
 	// 	f.StatusBar.Panels().Items(0).SetText(fmt.Sprintf("[%s] %s",
@@ -1721,6 +2160,16 @@ func (f *MainForm) UpdateStatus(status string) {
 }
 
 // GetCurrentData 获取当前显示的数据
+// 返回值说明:
+//   - string: 当前编辑框中的文本内容，如果编辑框为空则返回空字符串
+//
+// 功能说明:
+//  1. 检查编辑框组件是否存在
+//  2. 获取编辑框中的文本内容
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 如果编辑框组件未初始化，返回空字符串
 func (f *MainForm) GetCurrentData() string {
 	if f.EditInput != nil {
 		return f.EditInput.Text()
@@ -1729,6 +2178,16 @@ func (f *MainForm) GetCurrentData() string {
 }
 
 // SetCurrentData 设置当前显示的数据
+// 参数说明:
+//   - data: 要设置的文本内容
+//
+// 功能说明:
+//  1. 检查编辑框组件是否存在
+//  2. 将指定文本内容设置到编辑框中
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 如果编辑框组件未初始化，不执行任何操作
 func (f *MainForm) SetCurrentData(data string) {
 	if f.EditInput != nil {
 		f.EditInput.SetText(data)
@@ -1736,6 +2195,20 @@ func (f *MainForm) SetCurrentData(data string) {
 }
 
 // GetTableData 获取表格数据 - 彻底修复索引越界问题
+// 返回值说明:
+//   - [][]string: 表格中的所有数据，以二维字符串数组形式返回
+//
+// 功能说明:
+//  1. 检查表格组件是否存在
+//  2. 获取表格的实际行数和列数
+//  3. 防止超过Excel限制，对行列数进行截断
+//  4. 安全地遍历每个单元格并获取数据
+//  5. 使用异常处理防止访问越界
+//
+// 注意事项:
+//   - 使用defer捕获所有可能的panic
+//   - 对表格尺寸进行严格的安全检查
+//   - 每个单元格访问都使用独立的异常处理
 func (f *MainForm) GetTableData() [][]string {
 	if f.TableData == nil {
 		log.Printf("警告: 表格组件为nil，返回空数据")
@@ -1844,6 +2317,19 @@ func (f *MainForm) GetTableData() [][]string {
 }
 
 // SetTableData 设置表格数据（修复索引越界问题）
+// 参数说明:
+//   - data: 要设置的二维字符串数组，表示表格数据
+//
+// 功能说明:
+//  1. 检查表格组件和数据的有效性
+//  2. 设置表格尺寸，防止超过Excel限制
+//  3. 安全地填充数据到表格中
+//  4. 使用多层异常处理防止访问越界
+//
+// 注意事项:
+//   - 使用defer捕获所有可能的panic
+//   - 对表格尺寸进行严格的安全检查和限制
+//   - 每个单元格设置都使用独立的异常处理
 func (f *MainForm) SetTableData(data [][]string) {
 	if f.TableData == nil {
 		log.Printf("警告: 表格组件为nil，无法设置数据")
@@ -1944,6 +2430,18 @@ func (f *MainForm) SetTableData(data [][]string) {
 }
 
 // AddLog 添加日志信息
+// 参数说明:
+//   - logText: 要添加的日志文本内容
+//
+// 功能说明:
+//  1. 获取当前编辑框中的文本内容
+//  2. 将新日志文本追加到现有内容后
+//  3. 更新编辑框显示内容
+//  4. 自动滚动到底部显示最新内容
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 自动滚动功能确保用户能看到最新日志
 func (f *MainForm) AddLog(logText string) {
 	currentText := f.GetCurrentData()
 	newText := currentText + "\n" + logText
@@ -1964,6 +2462,13 @@ func (f *MainForm) AddLog(logText string) {
 }
 
 // applyUIStyles 应用现代化UI样式
+// 功能说明:
+//  1. 统一应用窗口、面板、按钮、输入组件、表格和状态栏的样式
+//  2. 提供一致的用户界面外观和交互体验
+//
+// 注意事项:
+//   - 按照UI组件层级顺序应用样式
+//   - 确保所有组件样式设置的一致性
 func (f *MainForm) applyUIStyles() {
 	// 设置主窗口样式
 	f.applyWindowStyles()
@@ -1985,6 +2490,14 @@ func (f *MainForm) applyUIStyles() {
 }
 
 // applyWindowStyles 应用窗口样式
+// 功能说明:
+//  1. 设置窗口标题和版本信息
+//  2. 设置窗口初始位置为屏幕中央
+//  3. 配置窗口边框图标（系统菜单、最小化、最大化按钮）
+//
+// 注意事项:
+//   - 使用屏幕中央位置提供良好的用户体验
+//   - 保留标准窗口控制按钮以便用户操作
 func (f *MainForm) applyWindowStyles() {
 	// 设置窗口标题和图标
 	f.TForm.SetCaption("GO VCL 多功能演示程序 v1.0")
@@ -1997,6 +2510,14 @@ func (f *MainForm) applyWindowStyles() {
 }
 
 // applyPanelStyles 应用面板样式
+// 功能说明:
+//  1. 设置主面板基本样式
+//  2. 为按钮面板添加边框效果
+//  3. 设置状态面板和表格面板的基本样式
+//
+// 注意事项:
+//   - 使用SetParentBackground(false)确保面板背景正确显示
+//   - 为不同面板设置不同的边框样式以区分功能区域
 func (f *MainForm) applyPanelStyles() {
 	// 主面板 - 基本样式
 	if f.PanelMain != nil {
@@ -2022,6 +2543,14 @@ func (f *MainForm) applyPanelStyles() {
 }
 
 // applyButtonStyles 应用按钮样式
+// 功能说明:
+//  1. 设置按钮字体大小为10
+//  2. 设置按钮字体为粗体样式
+//  3. 配置按钮悬停效果
+//
+// 注意事项:
+//   - 使用SetParentFont(false)确保按钮字体设置独立生效
+//   - 统一设置所有主要按钮的样式保持一致性
 func (f *MainForm) applyButtonStyles() {
 	buttons := []*vcl.TButton{
 		f.BtnImportExcel, f.BtnExcel, f.BtnJSON,
@@ -2042,6 +2571,15 @@ func (f *MainForm) applyButtonStyles() {
 }
 
 // applyInputStyles 应用输入组件样式
+// 功能说明:
+//  1. 设置信息标签字体大小、样式和透明度
+//  2. 设置线程和任务数量标签的字体样式
+//  3. 设置SpinEdit组件的字体和独立字体属性
+//  4. 设置输入编辑框的字体、只读属性和滚动条样式
+//
+// 注意事项:
+//   - 使用SetParentFont(false)确保组件字体设置独立生效
+//   - 为不同类型的输入组件设置适当的字体样式
 func (f *MainForm) applyInputStyles() {
 	// 美化信息标签
 	if f.LabelInfo != nil {
@@ -2087,6 +2625,17 @@ func (f *MainForm) applyInputStyles() {
 }
 
 // applyTableStyles 应用表格样式
+// 功能说明:
+//  1. 设置表格字体大小和样式
+//  2. 配置表格固定行和列
+//  3. 设置表格网格线选项，包括列宽调整选项
+//  4. 设置表格默认列宽
+//  5. 再次确认固定行列设置
+//
+// 注意事项:
+//   - 使用正确的Options设置方式确保包含列宽调整选项
+//   - 设置GoColSizing和GoThumbTracking选项实现列宽调整功能
+//   - 固定行设置为1，固定列设置为0允许调整所有列
 func (f *MainForm) applyTableStyles() {
 	if f.TableData != nil {
 		// 设置表格字体
@@ -2135,6 +2684,13 @@ func (f *MainForm) applyTableStyles() {
 }
 
 // applyStatusBarStyles 应用状态栏样式
+// 功能说明:
+//  1. 检查状态栏是否存在
+//  2. 设置状态栏面板文本内容
+//
+// 注意事项:
+//   - 确保状态栏面板存在后再设置文本
+//   - 提供基本的就绪状态和版本信息
 func (f *MainForm) applyStatusBarStyles() {
 	if f.StatusBar != nil {
 		// 设置状态栏面板样式
@@ -2146,6 +2702,17 @@ func (f *MainForm) applyStatusBarStyles() {
 }
 
 // autoResizeColumns 自动调整表格列宽以适应内容
+// 功能说明:
+//  1. 检查表格组件是否存在
+//  2. 检查并确保列宽调整选项已启用
+//  3. 遍历每一列，计算最佳宽度
+//  4. 设置列宽，限制最大宽度为300像素
+//  5. 刷新表格显示
+//
+// 注意事项:
+//   - 使用GoColSizing和GoThumbTracking选项实现列宽调整
+//   - 设置固定列为0，允许调整所有列
+//   - 使用简单的文本宽度估算算法
 func (f *MainForm) autoResizeColumns() {
 	if f.TableData == nil {
 		log.Printf("表格组件未初始化，无法自动调整列宽")
@@ -2227,7 +2794,20 @@ func (f *MainForm) autoResizeColumns() {
 var _ interfaces.UIInterface = (*MainForm)(nil)
 
 // onSaveConfigClick 保存配置按钮点击事件
-// 该方法处理用户点击保存配置按钮的操作，将当前单选框、多选框、线程数量和任务数量的值保存到配置文件中
+// 参数说明:
+//   - sender: 保存配置按钮组件
+//
+// 功能说明:
+//  1. 获取当前单选框、多选框、线程数量和任务数量的值
+//  2. 创建配置数据结构并添加时间戳
+//  3. 使用JSON管理器将配置数据转换为JSON字符串
+//  4. 保存JSON到配置文件
+//  5. 记录操作日志和更新状态栏
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 记录详细的配置值便于调试
+//   - 处理JSON转换和文件保存可能的错误
 func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 	f.AddLog("=== 保存配置开始 ===")
 
@@ -2287,7 +2867,17 @@ func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 }
 
 // loadConfig 加载配置文件
-// 该方法在程序启动时调用，从配置文件中读取保存的配置并应用到界面控件
+// 功能说明:
+//  1. 检查配置文件是否存在，不存在则使用默认配置
+//  2. 从文件加载JSON配置数据
+//  3. 解析JSON数据并应用到界面控件
+//  4. 设置线程数量、任务数量、单选框和多选框状态
+//  5. 显示配置最后更新时间并更新状态栏
+//
+// 注意事项:
+//   - 使用空指针检查防止运行时错误
+//   - 处理文件不存在、JSON解析失败等异常情况
+//   - 使用类型断言确保配置值类型正确
 func (f *MainForm) loadConfig() {
 	f.AddLog("=== 加载配置开始 ===")
 
