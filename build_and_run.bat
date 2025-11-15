@@ -21,6 +21,17 @@ if exist defaultRes_windows_386.syso del /q defaultRes_windows_386.syso
 :: 创建输出目录
 echo [2/7] 创建输出目录...
 if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
+if not exist %OUTPUT_DIR%\data mkdir %OUTPUT_DIR%\data
+
+:: 复制DLL文件到data目录
+echo [2.5/7] 复制DLL文件到data目录...
+if exist data\SkinH_EL.dll copy data\SkinH_EL.dll %OUTPUT_DIR%\data\ >nul
+if exist data\RegDll.dll copy data\RegDll.dll %OUTPUT_DIR%\data\ >nul
+if exist data\dm.dll copy data\dm.dll %OUTPUT_DIR%\data\ >nul
+
+:: 复制配置文件到data目录
+echo [2.6/7] 复制配置文件到data目录...
+if exist data\app_config.json copy data\app_config.json %OUTPUT_DIR%\data\ >nul
 
 :: 检查windres工具并创建资源文件
 echo [3/7] 检查windres工具并创建资源文件...

@@ -75,7 +75,7 @@ type MainForm struct {
 	BtnWebServer     *vcl.TButton // Web服务器按钮 - 用于启动/停止Web服务器
 	BtnTCPServer     *vcl.TButton // TCP服务器按钮 - 用于启动/停止TCP服务
 
-	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
+	BtnClose *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
 	// 输入组件 - 参数配置相关
 	EditThreadCount *vcl.TSpinEdit // 线程数量编辑框 - 用于设置并发测试的线程数，范围1-100
@@ -97,8 +97,6 @@ type MainForm struct {
 
 	// 多功能演示标签
 	LabelMultiFunc *vcl.TLabel // 多功能演示标签 - 显示应用程序名称
-
-
 
 	// 信息标签
 	LabelInfo *vcl.TLabel // 信息标签 - 显示应用程序信息
@@ -125,7 +123,6 @@ type MainForm struct {
 	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行，支持多种并发模式
 	WebServerManager  *managers.WebServerManager  // Web服务器管理器 - 处理HTTP和WebSocket服务
 	TCPServerManager  *managers.TCPServerManager  // TCP服务器管理器 - 处理TCP服务，支持多客户端连接
-
 
 	// 时间相关
 	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间，防止频繁更新
@@ -187,8 +184,6 @@ func NewMainForm() *MainForm {
 	tcpServerManager := managers.NewTCPServerManager(nil) // 创建TCP服务器管理器（不关联UI）
 	tcpServerManager.SetUIInstance(form)                  // 设置UI实例为当前窗口
 
-
-
 	// 将管理器实例关联到MainForm
 	form.ExcelManager = excelManager
 	form.JSONManager = jsonManager
@@ -197,7 +192,6 @@ func NewMainForm() *MainForm {
 	form.ConcurrentManager = concurrentManager
 	form.WebServerManager = webServerManager
 	form.TCPServerManager = tcpServerManager
-
 
 	return form
 }
@@ -223,7 +217,7 @@ func (f *MainForm) Show() {
 	f.applyUIStyles() // 应用UI样式设置
 	f.loadConfig()    // 加载配置文件
 
-	f.TForm.Show()    // 显示窗口
+	f.TForm.Show() // 显示窗口
 }
 
 // createUI 创建用户界面
@@ -641,8 +635,6 @@ func (f *MainForm) createButtons() {
 	f.LabelMultiFunc.Font().SetName("Microsoft YaHei") // 设置字体为微软雅黑
 	f.LabelMultiFunc.Font().SetSize(12)                // 设置字体大小为12
 	f.LabelMultiFunc.Font().SetColor(0x0000FF)         // 设置字体颜色为蓝色 (RGB: 0x0000FF)
-
-
 
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
@@ -2843,12 +2835,12 @@ func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 
 	// 创建配置数据结构
 	configData := map[string]interface{}{
-		"ThreadCount":    threadCount,
-		"TaskCount":      taskCount,
-		"RadioOption1":   radioOption1Checked,
-		"RadioOption2":   radioOption2Checked,
-		"CheckBox1":      checkBox1Checked,
-		"CheckBox2":      checkBox2Checked,
+		"ThreadCount":  threadCount,
+		"TaskCount":    taskCount,
+		"RadioOption1": radioOption1Checked,
+		"RadioOption2": radioOption2Checked,
+		"CheckBox1":    checkBox1Checked,
+		"CheckBox2":    checkBox2Checked,
 
 		"LastUpdateTime": time.Now().Format("2006-01-02 15:04:05"),
 	}
@@ -2865,7 +2857,7 @@ func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 		}
 
 		// 保存JSON到配置文件
-		configFileName := "app_config.json"
+		configFileName := "data/app_config.json"
 		if err := f.JSONManager.SaveJSONToFile(configJSON, configFileName); err != nil {
 			f.AddLog(fmt.Sprintf("保存配置文件失败: %v", err))
 			f.UpdateStatus("配置保存失败")
@@ -2896,7 +2888,7 @@ func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 func (f *MainForm) loadConfig() {
 	f.AddLog("=== 加载配置开始 ===")
 
-	configFileName := "app_config.json"
+	configFileName := "data/app_config.json"
 
 	// 检查配置文件是否存在
 	if _, err := os.Stat(configFileName); os.IsNotExist(err) {
@@ -2962,7 +2954,6 @@ func (f *MainForm) loadConfig() {
 		f.AddLog(fmt.Sprintf("多选框2状态已设置为: %t", checkBox2))
 	}
 
-
 	// 显示最后更新时间
 	if lastUpdateTime, ok := configData["LastUpdateTime"].(string); ok {
 		f.AddLog(fmt.Sprintf("配置最后更新时间: %s", lastUpdateTime))
@@ -2972,19 +2963,3 @@ func (f *MainForm) loadConfig() {
 	f.UpdateStatus("配置加载成功")
 	f.AddLog("=== 加载配置结束 ===")
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

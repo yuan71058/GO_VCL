@@ -41,8 +41,25 @@ func (sm *SkinManager) LoadSkinLibrary() bool {
 		}
 	}()
 
+	// 获取当前执行文件所在目录
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Printf("获取程序路径失败: %v", err)
+		return false
+	}
+
+	// 构建data目录下的DLL路径
+	dataDir := filepath.Join(filepath.Dir(exePath), "data")
+	dllPath := filepath.Join(dataDir, "SkinH_EL.dll")
+
+	// 检查DLL文件是否存在
+	if _, err := os.Stat(dllPath); err != nil {
+		log.Printf("皮肤库文件不存在: %s", dllPath)
+		return false
+	}
+
 	// 加载SkinH_EL.dll动态链接库
-	sm.SkinH_DLL = syscall.NewLazyDLL("SkinH_EL.dll")
+	sm.SkinH_DLL = syscall.NewLazyDLL(dllPath)
 
 	// 检查DLL是否加载成功
 	if sm.SkinH_DLL == nil {
@@ -50,7 +67,7 @@ func (sm *SkinManager) LoadSkinLibrary() bool {
 		return false
 	}
 
-	log.Println("SkinH_EL.dll加载成功")
+	log.Printf("SkinH_EL.dll加载成功: %s", dllPath)
 	return true
 }
 
@@ -69,6 +86,7 @@ func (sm *SkinManager) SkinH_Attach(skinPath string) bool {
 
 	// 获取SkinH_Attach函数指针
 	proc := sm.SkinH_DLL.NewProc("SkinH_Attach")
+	// proc := sm.SkinH_DLL.NewProc("SkinH_Attach")
 	if proc == nil {
 		log.Println("无法获取SkinH_Attach函数")
 		return false
@@ -185,7 +203,7 @@ func (sm *SkinManager) SkinH_AdjustAero(nAlpha, nShwDark, nShwSharp, nShwSize, n
 // 返回是否加载成功
 func (sm *SkinManager) LoadDefaultSkin() bool {
 	log.Println("开始加载默认皮肤...")
-	
+
 	// 首先加载皮肤库
 	if !sm.LoadSkinLibrary() {
 		log.Println("加载皮肤库失败")
@@ -198,17 +216,17 @@ func (sm *SkinManager) LoadDefaultSkin() bool {
 		log.Printf("获取程序路径失败: %v", err)
 		return false
 	}
-	
+
 	log.Printf("程序路径: %s", exePath)
 
 	// 构建默认皮肤文件路径
 	// 尝试多个皮肤文件
 	skinDir := filepath.Dir(exePath)
-	skinFiles := []string{"skinh.she", "Aero.she", "MACOS-白色.she", "QQ2008.she"}
-	
+	skinFiles := []string{"Aero.she"}
+	// skinFiles := []string{"skinh.she", "Aero.she", "MACOS-白色.she", "QQ2008.she"}
 	var skinPath string
 	var foundSkin bool
-	
+
 	// 检查皮肤文件是否存在
 	for _, skinFile := range skinFiles {
 		skinPath = filepath.Join(skinDir, skinFile)
@@ -218,12 +236,12 @@ func (sm *SkinManager) LoadDefaultSkin() bool {
 			break
 		}
 	}
-	
+
 	if !foundSkin {
 		log.Println("未找到任何皮肤文件，尝试使用内置皮肤")
 		return sm.SkinH_Attach("")
 	}
-	
+
 	log.Println("开始加载外部皮肤文件...")
 
 	// 加载皮肤文件

@@ -21,6 +21,17 @@ if exist defaultRes_windows_386.syso del /q defaultRes_windows_386.syso
 :: Create output directory
 echo [2/6] Creating output directory...
 if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
+if not exist %OUTPUT_DIR%\data mkdir %OUTPUT_DIR%\data
+
+:: Copy DLL files to data directory
+echo [2.5/6] Copying DLL files to data directory...
+if exist data\SkinH_EL.dll copy data\SkinH_EL.dll %OUTPUT_DIR%\data\ >nul
+if exist data\RegDll.dll copy data\RegDll.dll %OUTPUT_DIR%\data\ >nul
+if exist data\dm.dll copy data\dm.dll %OUTPUT_DIR%\data\ >nul
+
+:: Copy configuration file to data directory
+echo [2.6/6] Copying configuration file to data directory...
+if exist data\app_config.json copy data\app_config.json %OUTPUT_DIR%\data\ >nul
 
 :: Check windres tool and create resource file
 echo [3/6] Checking windres tool and creating resource file...
