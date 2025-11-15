@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GO_VCL Windows GUI应用程序</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,133.3C960,128,1056,96,1152,90.7C1248,85,1344,107,1392,117.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .tagline {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            opacity: 0.9;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .btn-primary {
+            background-color: white;
+            color: #2575fc;
+        }
+        
+        .btn-primary:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: white;
+            border-color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: white;
+            color: #2575fc;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            background-color: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .features {
+            padding: 80px 0;
+            background-color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+            font-size: 2.2rem;
+            color: #333;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            margin: 15px auto;
+            border-radius: 2px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .screenshot {
+            padding: 80px 0;
+            background-color: #f8f9fa;
+        }
+        
+        .screenshot-container {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .screenshot-img {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .screenshot-img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+        }
+        
+        .installation {
+            padding: 80px 0;
+            background-color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #2575fc;
+            border-bottom-color: #2575fc;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            margin: 20px 0;
+            border-left: 4px solid #2575fc;
+        }
+        
+        .tech-stack {
+            padding: 80px 0;
+            background-color: #f8f9fa;
+        }
+        
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .tech-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .tech-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .tech-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #2575fc;
+        }
+        
+        .footer {
+            background-color: #333;
+            color: white;
+            padding: 60px 0 20px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-section h3 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            color: white;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: #bbb;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #555;
+            color: #bbb;
+            font-size: 0.9rem;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .social-link:hover {
+            background-color: #2575fc;
+            transform: translateY(-3px);
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-desktop"></i>
+            </div>
+            <h1>GO_VCL Windows GUI应用程序</h1>
+            <p class="tagline">基于Go语言和Govcl UI框架开发的功能丰富的Windows桌面GUI应用程序，集成了Excel处理、JSON操作、HTTP请求和数据库管理等多种功能</p>
+            
+            <div class="cta-buttons">
+                <a href="https://github.com/yuan71058/GO_VCL/releases" class="btn btn-primary">
+                    <i class="fas fa-download"></i> 下载应用
+                </a>
+                <a href="https://github.com/yuan71058/GO_VCL" class="btn btn-secondary">
+                    <i class="fab fa-github"></i> 查看源码
+                </a>
+            </div>
+            
+            <div class="badges">
+                <div class="badge">
+                    <i class="fas fa-code-branch"></i> v1.3.2
+                </div>
+                <div class="badge">
+                    <i class="fas fa-certificate"></i> MIT License
+                </div>
+                <div class="badge">
+                    <i class="fab fa-windows"></i> Windows 10/11
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h3 class="feature-title">Excel操作</h3>
+                    <p class="feature-description">导入导出xlsx格式文件，支持批量数据处理，提供直观的表格编辑界面</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="feature-title">JSON操作</h3>
+                    <p class="feature-description">解析、验证和格式化JSON数据，支持JSONPath查询，提供语法高亮显示</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 class="feature-title">HTTP网络操作</h3>
+                    <p class="feature-description">支持GET/POST/PUT/DELETE请求，文件下载和自定义请求头，实时查看响应</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3 class="feature-title">数据库操作</h3>
+                    <p class="feature-description">完整的SQLite数据库管理，支持CRUD操作，提供可视化数据管理界面</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <h3 class="feature-title">图像处理</h3>
+                    <p class="feature-description">导入并显示多种格式的图片，带美观边框效果，支持图片缩放和旋转</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <h3 class="feature-title">网络服务</h3>
+                    <p class="feature-description">内置TCP服务器和Web服务器，支持多客户端连接，提供RESTful API接口</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="screenshot">
+        <div class="container">
+            <h2 class="section-title">应用界面</h2>
+            <div class="screenshot-container">
+                <img src="../../image.png" alt="GO_VCL应用程序界面" class="screenshot-img">
+            </div>
+        </div>
+    </section>
+    
+    <section class="installation">
+        <div class="container">
+            <h2 class="section-title">快速开始</h2>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('download')">下载安装</div>
+                <div class="tab" onclick="showTab('build')">源码构建</div>
+            </div>
+            
+            <div id="download" class="tab-content active">
+                <h3>下载安装</h3>
+                <p>最简单的安装方式是直接下载预编译的可执行文件：</p>
+                
+                <div class="code-block">
+                    1. 访问 <a href="https://github.com/yuan71058/GO_VCL/releases" target="_blank">发布页面</a><br>
+                    2. 下载最新版本的 windows-gui-app.exe<br>
+                    3. 双击运行，无需安装
+                </div>
+                
+                <h4>系统要求</h4>
+                <ul>
+                    <li>Windows 10/11 (x64)</li>
+                    <li>最少512MB可用内存</li>
+                    <li>至少20MB可用空间</li>
+                </ul>
+            </div>
+            
+            <div id="build" class="tab-content">
+                <h3>从源码构建</h3>
+                <p>如果您想从源码构建应用程序，请按照以下步骤操作：</p>
+                
+                <div class="code-block">
+                    # 克隆仓库<br>
+                    git clone https://github.com/yuan71058/GO_VCL.git<br>
+                    cd GO_VCL<br><br>
+                    
+                    # 安装依赖<br>
+                    go mod tidy<br><br>
+                    
+                    # 构建程序<br>
+                    go build -tags tempdll -ldflags "-w -s -H=windowsgui" -o dist/windows-gui-app.exe<br><br>
+                    
+                    # 或使用提供的构建脚本<br>
+                    .\build_and_run.bat
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="tech-stack">
+        <div class="container">
+            <h2 class="section-title">技术架构</h2>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fab fa-golang"></i>
+                    </div>
+                    <h3>Go语言</h3>
+                    <p>高性能、类型安全的编程语言</p>
+                </div>
+                
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <h3>Govcl框架</h3>
+                    <p>跨平台的VCL GUI框架</p>
+                </div>
+                
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3>SQLite</h3>
+                    <p>轻量级嵌入式数据库</p>
+                </div>
+                
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <h3>Excelize</h3>
+                    <p>高性能Excel文件处理库</p>
+                </div>
+                
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>GJSON</h3>
+                    <p>高效JSON解析库</p>
+                </div>
+                
+                <div class="tech-item">
+                    <div class="tech-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3>HttpRequest</h3>
+                    <p>简洁易用的HTTP客户端库</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>项目</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/yuan71058/GO_VCL">GitHub仓库</a></li>
+                        <li><a href="https://github.com/yuan71058/GO_VCL/releases">下载页面</a></li>
+                        <li><a href="https://github.com/yuan71058/GO_VCL/issues">问题反馈</a></li>
+                        <li><a href="../../docs/USER_MANUAL.md">用户手册</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>文档</h3>
+                    <ul class="footer-links">
+                        <li><a href="../../docs/IMPORT_EXCEL_FEATURE.md">Excel功能</a></li>
+                        <li><a href="../../docs/TCP_SERVER_FEATURE.md">TCP服务器</a></li>
+                        <li><a href="../../docs/WEBSERVER_FEATURE.md">Web服务器</a></li>
+                        <li><a href="../../docs/UPX_COMPRESSION_FEATURE.md">压缩优化</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>关于</h3>
+                    <p>GO_VCL是一个功能丰富的Windows桌面GUI应用程序，基于Go语言和Govcl UI框架开发，提供直观易用的图形界面和强大的数据处理功能。</p>
+                    <div class="social-links">
+                        <a href="https://github.com/yuan71058/GO_VCL" class="social-link">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 GO_VCL Windows GUI应用程序. 保留所有权利. | 使用 ❤️ 和 Go 语言构建</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        function showTab(tabName) {
+            // 隐藏所有标签内容
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签的活动状态
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的标签内容
+            document.getElementById(tabName).classList.add('active');
+            
+            // 设置选中的标签为活动状态
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
