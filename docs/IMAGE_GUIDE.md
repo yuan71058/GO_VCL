@@ -43,6 +43,16 @@
 1. `image.png` - 应用程序界面截图
 2. `rgb.ico` - 应用程序图标
 
+## Screenshots目录
+
+项目已创建`screenshots/`目录用于存放功能截图：
+
+1. `main-ui.png` - 应用程序主界面截图（待添加）
+2. `excel-operation.png` - Excel文件导入功能截图（待添加）
+3. `database-operation.png` - 数据库查询功能截图（待添加）
+
+注意：当前这些是示例文件名，实际截图需要后续添加。
+
 ## 添加新图片的步骤
 
 1. **准备图片文件**

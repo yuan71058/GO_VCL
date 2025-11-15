@@ -74,6 +74,7 @@ type MainForm struct {
 	BtnSaveConfig    *vcl.TButton // 保存配置按钮 - 用于保存当前配置到文件
 	BtnWebServer     *vcl.TButton // Web服务器按钮 - 用于启动/停止Web服务器
 	BtnTCPServer     *vcl.TButton // TCP服务器按钮 - 用于启动/停止TCP服务
+
 	BtnClose         *vcl.TButton // 关闭按钮 - 用于关闭应用程序
 
 	// 输入组件 - 参数配置相关
@@ -96,6 +97,8 @@ type MainForm struct {
 
 	// 多功能演示标签
 	LabelMultiFunc *vcl.TLabel // 多功能演示标签 - 显示应用程序名称
+
+
 
 	// 信息标签
 	LabelInfo *vcl.TLabel // 信息标签 - 显示应用程序信息
@@ -122,6 +125,7 @@ type MainForm struct {
 	ConcurrentManager *managers.ConcurrentManager // 并发管理器 - 处理多线程任务执行，支持多种并发模式
 	WebServerManager  *managers.WebServerManager  // Web服务器管理器 - 处理HTTP和WebSocket服务
 	TCPServerManager  *managers.TCPServerManager  // TCP服务器管理器 - 处理TCP服务，支持多客户端连接
+
 
 	// 时间相关
 	lastUpdate time.Time // 最后更新时间 - 用于跟踪状态更新时间，防止频繁更新
@@ -156,6 +160,7 @@ func NewMainForm() *MainForm {
 	form.TForm.SetWidth(1024)                    // 设置窗口宽度为1024像素
 	form.TForm.SetHeight(568)                    // 设置窗口高度为568像素
 	form.TForm.SetPosition(types.PoScreenCenter) // 设置窗口位置为屏幕中央
+	form.TForm.SetColor(0x00FFFFFF)              // 设置窗口背景色为白色 (RGB: 0x00FFFFFF)
 	form.TForm.SetOnClose(form.onClose)          // 设置窗口关闭事件处理函数
 	form.TForm.SetOnShow(form.onShow)            // 设置窗口显示事件处理函数
 
@@ -182,6 +187,8 @@ func NewMainForm() *MainForm {
 	tcpServerManager := managers.NewTCPServerManager(nil) // 创建TCP服务器管理器（不关联UI）
 	tcpServerManager.SetUIInstance(form)                  // 设置UI实例为当前窗口
 
+
+
 	// 将管理器实例关联到MainForm
 	form.ExcelManager = excelManager
 	form.JSONManager = jsonManager
@@ -190,6 +197,7 @@ func NewMainForm() *MainForm {
 	form.ConcurrentManager = concurrentManager
 	form.WebServerManager = webServerManager
 	form.TCPServerManager = tcpServerManager
+
 
 	return form
 }
@@ -214,6 +222,7 @@ func (f *MainForm) Show() {
 	f.createUI()      // 创建用户界面组件
 	f.applyUIStyles() // 应用UI样式设置
 	f.loadConfig()    // 加载配置文件
+
 	f.TForm.Show()    // 显示窗口
 }
 
@@ -260,7 +269,7 @@ func (f *MainForm) createUI() {
 	f.PanelButtons = vcl.NewPanel(f.TForm)
 	f.PanelButtons.SetParent(f.PanelMain)
 	f.PanelButtons.SetAlign(types.AlTop)       // 顶部对齐
-	f.PanelButtons.SetHeight(220)              // 设置高度为220像素，适应5排按钮布局
+	f.PanelButtons.SetHeight(140)              // 设置高度为140像素，适应3排按钮布局
 	f.PanelButtons.SetBevelOuter(types.BvNone) // 无边框
 
 	// 创建按钮
@@ -459,8 +468,8 @@ func (f *MainForm) createMainMenu() {
 // 功能说明:
 //  1. 创建参数配置区域面板，包含线程数、任务数、选项配置和TCP客户端连接配置
 //  2. 创建TCP数据发送配置区域，包含数据输入和发送按钮
-//  3. 创建多功能演示标签，用于展示不同功能
-//  4. 创建功能按钮面板，包含5行共16个功能按钮
+//  3. 创建多功能演示标签，位于线程数量编辑框后面
+//  4. 创建功能按钮面板，包含3行共18个功能按钮
 //  5. 设置各组件的位置、大小、默认值和事件处理函数
 //
 // 面板布局:
@@ -468,19 +477,17 @@ func (f *MainForm) createMainMenu() {
 //	按钮面板 (PanelButtons)
 //	├── 参数配置区域 (configPanel)
 //	│   ├── 线程/任务数量配置
+//	│   ├── 多功能演示标签（位于线程数量编辑框后面）
 //	│   ├── 单选框/多选框配置
 //	│   ├── TCP客户端连接配置
-//	│   ├── TCP数据发送配置
-//	│   └── 多功能演示标签
+//	│   └── TCP数据发送配置
 //	└── 功能按钮面板 (buttonPanel)
-//	    ├── 第一行按钮 (3个): 保存配置、获取选中状态、导入Excel
-//	    ├── 第二行按钮 (3个): 导入图片、Excel操作、JSON操作
-//	    ├── 第三行按钮 (3个): HTTP操作、数据库操作、多线程测试
-//	    ├── 第四行按钮 (3个): 调整列宽、Web服务器、TCP服务
-//	    └── 第五行按钮 (1个): 关闭
+//	    ├── 第一行按钮 (7个): 保存配置、获取选中状态、导入Excel、导入图片、Excel操作、JSON操作、HTTP操作
+//	    ├── 第二行按钮 (5个): 数据库操作、多线程测试、调整列宽、Web服务器、TCP服务
+//	    └── 第三行按钮 (1个): 关闭
 //
 // 注意事项:
-//   - 使用网格布局优化按钮排列，每行最多3个按钮
+//   - 使用网格布局优化按钮排列，每行7个按钮
 //   - SpinEdit组件设置了最小值、最大值和默认值
 //   - TCP服务器IP和端口有默认值，方便测试
 //   - 所有按钮都绑定了对应的点击事件处理函数
@@ -492,9 +499,9 @@ func (f *MainForm) createButtons() {
 	configPanel := vcl.NewPanel(f.TForm)
 	configPanel.SetParent(f.PanelButtons)
 	configPanel.SetAlign(types.AlLeft)      // 设置左对齐，占据按钮面板左侧空间
-	configPanel.SetWidth(330)               // 增加宽度以容纳多选框
+	configPanel.SetWidth(550)               // 增加宽度以容纳多选框和附加码编辑框
 	configPanel.SetBevelOuter(types.BvNone) // 设置无边框样式
-	configPanel.SetHeight(170)              // 增加高度以容纳TCP客户端连接配置、数据发送控件和多功能演示标签
+	configPanel.SetHeight(160)              // 增加高度以容纳TCP客户端连接配置、数据发送控件和多功能演示标签
 
 	// 创建参数标签和编辑框
 	f.LabelThread = vcl.NewLabel(f.TForm)
@@ -627,13 +634,15 @@ func (f *MainForm) createButtons() {
 	f.LabelMultiFunc = vcl.NewLabel(f.TForm)
 	f.LabelMultiFunc.SetParent(configPanel)
 	f.LabelMultiFunc.SetCaption("多功能演示")
-	f.LabelMultiFunc.SetLeft(10)
-	f.LabelMultiFunc.SetTop(140)
+	f.LabelMultiFunc.SetLeft(170) // 移动到线程数量编辑框后面
+	f.LabelMultiFunc.SetTop(10)   // 与线程数量标签对齐
 	f.LabelMultiFunc.SetWidth(100)
 	f.LabelMultiFunc.SetFont(vcl.NewFont())
 	f.LabelMultiFunc.Font().SetName("Microsoft YaHei") // 设置字体为微软雅黑
 	f.LabelMultiFunc.Font().SetSize(12)                // 设置字体大小为12
 	f.LabelMultiFunc.Font().SetColor(0x0000FF)         // 设置字体颜色为蓝色 (RGB: 0x0000FF)
+
+
 
 	// 创建功能按钮面板
 	buttonPanel := vcl.NewPanel(f.TForm)
@@ -641,16 +650,16 @@ func (f *MainForm) createButtons() {
 	buttonPanel.SetAlign(types.AlClient)    // 客户区对齐，填充整个父容器
 	buttonPanel.SetBevelOuter(types.BvNone) // 无边框样式
 
-	// 设置按钮面板高度以适应5排按钮的布局
-	buttonPanel.SetHeight(210) // 增加高度以适应5排按钮的布局
+	// 设置按钮面板高度以适应4排按钮的布局
+	buttonPanel.SetHeight(170) // 设置高度以适应4排按钮的布局
 
 	// 创建按钮 - 使用网格布局优化视觉效果
 
-	// 第一行按钮 (3个) - 配置和基础操作
+	// 第一行按钮 (5个) - 配置和基础操作
 	f.BtnSaveConfig = vcl.NewButton(f.TForm)
 	f.BtnSaveConfig.SetParent(buttonPanel)
 	f.BtnSaveConfig.SetCaption("保存配置")
-	f.BtnSaveConfig.SetWidth(100)
+	f.BtnSaveConfig.SetWidth(80)
 	f.BtnSaveConfig.SetHeight(30)
 	f.BtnSaveConfig.SetLeft(10)
 	f.BtnSaveConfig.SetTop(5)
@@ -659,113 +668,111 @@ func (f *MainForm) createButtons() {
 	f.BtnGetSelections = vcl.NewButton(f.TForm)
 	f.BtnGetSelections.SetParent(buttonPanel)
 	f.BtnGetSelections.SetCaption("获取选中状态")
-	f.BtnGetSelections.SetWidth(100)
+	f.BtnGetSelections.SetWidth(80)
 	f.BtnGetSelections.SetHeight(30)
-	f.BtnGetSelections.SetLeft(115)
+	f.BtnGetSelections.SetLeft(95)
 	f.BtnGetSelections.SetTop(5)
 	f.BtnGetSelections.SetOnClick(f.onGetSelectionsClick) // 绑定获取选中状态事件处理函数
 
 	f.BtnImportExcel = vcl.NewButton(f.TForm)
 	f.BtnImportExcel.SetParent(buttonPanel)
 	f.BtnImportExcel.SetCaption("导入Excel")
-	f.BtnImportExcel.SetWidth(100)
+	f.BtnImportExcel.SetWidth(80)
 	f.BtnImportExcel.SetHeight(30)
-	f.BtnImportExcel.SetLeft(220)
+	f.BtnImportExcel.SetLeft(180)
 	f.BtnImportExcel.SetTop(5)
 	f.BtnImportExcel.SetOnClick(f.onImportExcelClick) // 绑定导入Excel事件处理函数
 
-	// 第二行按钮 (3个) - 文件处理操作
 	f.BtnImportImage = vcl.NewButton(f.TForm)
 	f.BtnImportImage.SetParent(buttonPanel)
 	f.BtnImportImage.SetCaption("导入图片")
-	f.BtnImportImage.SetWidth(100)
+	f.BtnImportImage.SetWidth(80)
 	f.BtnImportImage.SetHeight(30)
-	f.BtnImportImage.SetLeft(10)
-	f.BtnImportImage.SetTop(45)
+	f.BtnImportImage.SetLeft(265)
+	f.BtnImportImage.SetTop(5)
 	f.BtnImportImage.SetOnClick(f.onImportImageClick) // 绑定导入图片事件处理函数
 
 	f.BtnExcel = vcl.NewButton(f.TForm)
 	f.BtnExcel.SetParent(buttonPanel)
 	f.BtnExcel.SetCaption("Excel操作")
-	f.BtnExcel.SetWidth(100)
+	f.BtnExcel.SetWidth(80)
 	f.BtnExcel.SetHeight(30)
-	f.BtnExcel.SetLeft(115)
-	f.BtnExcel.SetTop(45)
+	f.BtnExcel.SetLeft(350)
+	f.BtnExcel.SetTop(5)
 	f.BtnExcel.SetOnClick(f.onExcelClick) // 绑定Excel操作事件处理函数
 
+	// 第二行按钮 (5个) - 数据和Web操作
 	f.BtnJSON = vcl.NewButton(f.TForm)
 	f.BtnJSON.SetParent(buttonPanel)
 	f.BtnJSON.SetCaption("JSON操作")
-	f.BtnJSON.SetWidth(100)
+	f.BtnJSON.SetWidth(80)
 	f.BtnJSON.SetHeight(30)
-	f.BtnJSON.SetLeft(220)
+	f.BtnJSON.SetLeft(10)
 	f.BtnJSON.SetTop(45)
 	f.BtnJSON.SetOnClick(f.onJSONClick) // 绑定JSON操作事件处理函数
 
-	// 第三行按钮 (3个) - 网络和数据库操作
 	f.BtnHTTP = vcl.NewButton(f.TForm)
 	f.BtnHTTP.SetParent(buttonPanel)
 	f.BtnHTTP.SetCaption("HTTP操作")
-	f.BtnHTTP.SetWidth(100)
+	f.BtnHTTP.SetWidth(80)
 	f.BtnHTTP.SetHeight(30)
-	f.BtnHTTP.SetLeft(10)
-	f.BtnHTTP.SetTop(85)
+	f.BtnHTTP.SetLeft(95)
+	f.BtnHTTP.SetTop(45)
 	f.BtnHTTP.SetOnClick(f.onHTTPClick) // 绑定HTTP操作事件处理函数
 
 	f.BtnDatabase = vcl.NewButton(f.TForm)
 	f.BtnDatabase.SetParent(buttonPanel)
 	f.BtnDatabase.SetCaption("数据库操作")
-	f.BtnDatabase.SetWidth(100)
+	f.BtnDatabase.SetWidth(80)
 	f.BtnDatabase.SetHeight(30)
-	f.BtnDatabase.SetLeft(115)
-	f.BtnDatabase.SetTop(85)
+	f.BtnDatabase.SetLeft(180)
+	f.BtnDatabase.SetTop(45)
 	f.BtnDatabase.SetOnClick(f.onDatabaseClick) // 绑定数据库操作事件处理函数
 
 	f.BtnConcurrent = vcl.NewButton(f.TForm)
 	f.BtnConcurrent.SetParent(buttonPanel)
 	f.BtnConcurrent.SetCaption("多线程测试")
-	f.BtnConcurrent.SetWidth(100)
+	f.BtnConcurrent.SetWidth(80)
 	f.BtnConcurrent.SetHeight(30)
-	f.BtnConcurrent.SetLeft(220)
-	f.BtnConcurrent.SetTop(85)
+	f.BtnConcurrent.SetLeft(265)
+	f.BtnConcurrent.SetTop(45)
 	f.BtnConcurrent.SetOnClick(f.onConcurrentClick) // 绑定多线程测试事件处理函数
 
-	// 第四行按钮 (3个) - 高级功能操作
 	f.BtnResizeColumns = vcl.NewButton(f.TForm)
 	f.BtnResizeColumns.SetParent(buttonPanel)
 	f.BtnResizeColumns.SetCaption("调整列宽")
-	f.BtnResizeColumns.SetWidth(100)
+	f.BtnResizeColumns.SetWidth(80)
 	f.BtnResizeColumns.SetHeight(30)
-	f.BtnResizeColumns.SetLeft(10)
-	f.BtnResizeColumns.SetTop(125)
+	f.BtnResizeColumns.SetLeft(350)
+	f.BtnResizeColumns.SetTop(45)
 	f.BtnResizeColumns.SetOnClick(f.onResizeColumnsClick) // 绑定调整列宽事件处理函数
 
+	// 第三行按钮 (3个) - 服务器操作和应用程序控制
 	f.BtnWebServer = vcl.NewButton(f.TForm)
 	f.BtnWebServer.SetParent(buttonPanel)
 	f.BtnWebServer.SetCaption("Web服务器")
-	f.BtnWebServer.SetWidth(100)
+	f.BtnWebServer.SetWidth(80)
 	f.BtnWebServer.SetHeight(30)
-	f.BtnWebServer.SetLeft(115)
-	f.BtnWebServer.SetTop(125)
+	f.BtnWebServer.SetLeft(10)
+	f.BtnWebServer.SetTop(85)
 	f.BtnWebServer.SetOnClick(f.onWebServerClick) // 绑定Web服务器事件处理函数
 
 	f.BtnTCPServer = vcl.NewButton(f.TForm)
 	f.BtnTCPServer.SetParent(buttonPanel)
 	f.BtnTCPServer.SetCaption("TCP服务")
-	f.BtnTCPServer.SetWidth(100)
+	f.BtnTCPServer.SetWidth(80)
 	f.BtnTCPServer.SetHeight(30)
-	f.BtnTCPServer.SetLeft(220)
-	f.BtnTCPServer.SetTop(125)
+	f.BtnTCPServer.SetLeft(95)
+	f.BtnTCPServer.SetTop(85)
 	f.BtnTCPServer.SetOnClick(f.onTCPServerClick) // 绑定TCP服务事件处理函数
 
-	// 第五行按钮 (1个) - 应用程序控制
 	f.BtnClose = vcl.NewButton(f.TForm)
 	f.BtnClose.SetParent(buttonPanel)
 	f.BtnClose.SetCaption("关闭")
-	f.BtnClose.SetWidth(100)
+	f.BtnClose.SetWidth(80)
 	f.BtnClose.SetHeight(30)
-	f.BtnClose.SetLeft(10)
-	f.BtnClose.SetTop(165)
+	f.BtnClose.SetLeft(180)
+	f.BtnClose.SetTop(85)
 	f.BtnClose.SetOnClick(f.onCloseClick) // 绑定关闭事件处理函数
 
 	// 创建皮肤选择按钮
@@ -2522,22 +2529,26 @@ func (f *MainForm) applyPanelStyles() {
 	// 主面板 - 基本样式
 	if f.PanelMain != nil {
 		f.PanelMain.SetParentBackground(false)
+		f.PanelMain.SetColor(0x00FFFFFF) // 设置背景色为白色
 	}
 
 	// 按钮面板 - 添加边框效果
 	if f.PanelButtons != nil {
 		f.PanelButtons.SetParentBackground(false)
+		f.PanelButtons.SetColor(0x00FFFFFF) // 设置背景色为白色
 		f.PanelButtons.SetBevelOuter(types.BvLowered)
 	}
 
 	// 状态面板 - 基本样式
 	if f.PanelStatus != nil {
 		f.PanelStatus.SetParentBackground(false)
+		f.PanelStatus.SetColor(0x00FFFFFF) // 设置背景色为白色
 	}
 
 	// 表格面板 - 基本样式
 	if f.PanelTable != nil {
 		f.PanelTable.SetParentBackground(false)
+		f.PanelTable.SetColor(0x00FFFFFF) // 设置背景色为白色
 		f.PanelTable.SetBevelOuter(types.BvRaised)
 	}
 }
@@ -2643,6 +2654,9 @@ func (f *MainForm) applyTableStyles() {
 		font.SetSize(10)
 		font.SetStyle(types.TFontStyles(types.FsNormal))
 		f.TableData.SetFont(font)
+
+		// 设置表格背景色为白色
+		f.TableData.SetColor(0x00FFFFFF) // 设置背景色为白色
 
 		// 设置标题行样式
 		f.TableData.SetFixedRows(1)
@@ -2835,6 +2849,7 @@ func (f *MainForm) onSaveConfigClick(sender vcl.IObject) {
 		"RadioOption2":   radioOption2Checked,
 		"CheckBox1":      checkBox1Checked,
 		"CheckBox2":      checkBox2Checked,
+
 		"LastUpdateTime": time.Now().Format("2006-01-02 15:04:05"),
 	}
 
@@ -2947,6 +2962,7 @@ func (f *MainForm) loadConfig() {
 		f.AddLog(fmt.Sprintf("多选框2状态已设置为: %t", checkBox2))
 	}
 
+
 	// 显示最后更新时间
 	if lastUpdateTime, ok := configData["LastUpdateTime"].(string); ok {
 		f.AddLog(fmt.Sprintf("配置最后更新时间: %s", lastUpdateTime))
@@ -2956,3 +2972,19 @@ func (f *MainForm) loadConfig() {
 	f.UpdateStatus("配置加载成功")
 	f.AddLog("=== 加载配置结束 ===")
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

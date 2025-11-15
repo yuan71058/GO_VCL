@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/badge/Go-1.22+-blue.svg)](https://golang.org)
 [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
-[![Version](https://img.shields.io/badge/Version-v1.3.1-red.svg)](https://github.com/yuan71058/GO_VCL/releases)
+[![Version](https://img.shields.io/badge/Version-v1.3.2-red.svg)](https://github.com/yuan71058/GO_VCL/releases)
 
 GO_VCL是一个功能丰富的Windows桌面GUI应用程序，基于Go语言和Govcl UI框架开发，集成了Excel处理、JSON操作、HTTP请求和数据库管理等多种功能，提供直观易用的图形界面。
 
@@ -55,6 +55,12 @@ GO_VCL是一个功能丰富的Windows桌面GUI应用程序，基于Go语言和Go
 - **UTF-8编码**: 解决了服务器重启后出现乱码的问题
 - **连接管理**: 实时显示客户端连接状态和信息
 
+### 🌐 Web服务器
+- **HTTP服务**: 提供RESTful API接口，支持状态查询和客户端管理
+- **WebSocket服务**: 支持实时双向通信，适用于实时数据推送
+- **客户端管理**: 跟踪和管理连接的客户端
+- **API路由**: 内置多个API端点，包括状态查询、客户端列表等
+
 ### ⚡ 高级特性
 - **多线程支持**: 并发任务管理和结果收集
 - **独立部署**: 通过DLL嵌入技术实现无需外部依赖
@@ -94,6 +100,10 @@ GO_VCL/
 │   ├── USER_MANUAL.md           # 用户手册
 │   ├── ICON_AND_MANIFEST_GUIDE.md # 图标和清单指南
 │   ├── IMPORT_EXCEL_FEATURE.md  # Excel导入功能说明
+│   ├── TCP_SERVER_FEATURE.md    # TCP服务器功能说明
+│   ├── WEBSERVER_FEATURE.md     # Web服务器功能说明
+│   ├── IMAGE_GUIDE.md           # 图片添加指南
+│   ├── BAT_FORMAT_GUIDE.md      # 批处理脚本格式指南
 │   └── UPX_COMPRESSION_FEATURE.md # UPX压缩功能说明
 ├── 说明文档.md                   # 项目详细说明文档
 ├── README.md                    # 项目说明文档
@@ -197,12 +207,20 @@ GO_VCL/
 4. 图片框带有美观的边框效果
 
 #### TCP服务器
-1. 点击"🌐 TCP服务"按钮启动TCP服务器
+1. 点击"🔌 TCP服务"按钮启动TCP服务器
 2. 服务器默认监听端口8082
 3. 使用"📡 连接TCP"按钮连接到服务器
 4. 使用"📤 发送数据"按钮向服务器发送消息
 5. 服务器支持多客户端同时连接
 6. 消息采用UTF-8编码，避免了乱码问题
+
+#### Web服务器
+1. 点击"🌐 Web服务器"按钮启动Web服务器
+2. HTTP服务默认监听端口8080
+3. WebSocket服务默认监听端口8081
+4. 服务器提供RESTful API接口
+5. 支持实时双向WebSocket通信
+6. 可通过API查询服务器状态和客户端信息
 
 #### 获取选中状态
 1. 点击"📋 获取选中状态"按钮
@@ -306,6 +324,13 @@ GO_VCL/
 
 ## 📋 版本历史
 
+### v1.3.2 (2025-11-14)
+- **TCP服务器功能增强**：修复TCP服务器停止后再次启动出现乱码的问题
+- **UTF-8编码支持**：为TCP服务器添加UTF-8编码处理，确保中文字符正确传输
+- **Web服务器功能**：新增Web服务器功能，支持HTTP和WebSocket服务
+- **API接口完善**：提供RESTful API接口，支持状态查询和客户端管理
+- **文档更新**：添加TCP服务器和Web服务器功能文档，完善用户指南
+
 ### v1.3.1 (2025-11-12)
 - 项目结构优化：清理无用文件和脚本，删除重复文件
 - 皮肤文件管理：将皮肤文件迁移到dist目录，统一管理
@@ -406,5 +431,5 @@ GO_VCL/
 <div align="center">
   <p>© 2025 GO_VCL Windows GUI应用程序. 保留所有权利.</p>
   <p>使用 ❤️ 和 Go 语言构建</p>
-  <p><strong>最后更新</strong>: 2025-11-12 (v1.3.1)</p>
+  <p><strong>最后更新</strong>: 2025-11-14 (v1.3.2)</p>
 </div>
